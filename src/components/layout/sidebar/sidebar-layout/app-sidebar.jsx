@@ -27,14 +27,14 @@ const navMain = [
         url: "#",
         icon: Users,
         items: [
-            { title: "Client Account", url: "#" },
+            { title: "Client Account", url: "/client" },
             { title: "Staff Account", url: "#" },
         ],
     },
-    { title: "Seedling Inventory", url: "#", icon: FileBox },
-    { title: "Seedling Production", url: "#", icon: Sprout },
+    { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
+    { title: "Seedling Production", url: "seedling-production", icon: Sprout },
     { title: "Distribution", url: "#", icon: Truck },
-    { title: "Request", url: "#", icon: ClipboardList },
+    { title: "Request", url: "/requests", icon: ClipboardList },
     { title: "Reports", url: "#", icon: ChartNoAxesCombined },
     { title: "Activity Logs", url: "#", icon: Logs },
 ];
