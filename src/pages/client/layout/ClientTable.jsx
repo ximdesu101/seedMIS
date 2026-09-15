@@ -34,6 +34,7 @@ import {
     Search,
     Ghost
 } from "lucide-react";
+import AddClient from "./AddClient";
 
 const clients = [
     {
@@ -131,6 +132,7 @@ const ClientTable = () => {
     return (
         <div className="grid gap-2">
             <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
                 <div className="w-80">
                     <InputGroup>
                         <InputGroupInput
@@ -159,7 +161,8 @@ const ClientTable = () => {
                     </SelectContent>
                 </Select>
             </div>
-
+            <AddClient />
+        </div>
             <div className="overflow-hidden rounded-md border">
                 <Table className="p-0">
                     <TableHeader>
