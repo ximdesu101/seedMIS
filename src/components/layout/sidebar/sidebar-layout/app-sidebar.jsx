@@ -28,7 +28,7 @@ const navMain = [
         icon: Users,
         items: [
             { title: "Client Account", url: "/client" },
-            { title: "Staff Account", url: "#" },
+            { title: "Staff Account", url: "/staff" },
         ],
     },
     { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },

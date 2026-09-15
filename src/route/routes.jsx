@@ -6,6 +6,7 @@ import Client from "@/pages/client/Client";
 import SeedlingInventory from "@/pages/inventory/SeedlingInventory";
 import SeedlingProduction from "@/pages/production/SeedlingProduction";
 import Request from "@/pages/request/Request";
+import Staff from "@/pages/staff/staff";
 
 export const router = createBrowserRouter([
     {
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
             { path: "seedling-inventory", element: <SeedlingInventory/> },
             { path: "seedling-production", element: <SeedlingProduction/> },
             { path: "requests", element: <Request/> },
+            { path: "staff", element: <Staff/> },
         ],
     },
 ]);
