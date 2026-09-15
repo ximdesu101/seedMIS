@@ -30,115 +30,79 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
+    Trash,
     Search,
-    Ellipsis,
-    Eye,
-    Pencil,
-    Archive,
-    SlidersHorizontal,
+    Ghost
 } from "lucide-react";
+import AddStaff from "./AddStaff";
 
-const seedlings = [
+const staff = [
     {
-        id: "INV-001",
-        seedlingType: "Mahogany",
-        scientificName: "Swietenia macrophylla",
-        quantity: 2500,
-        available: 2200,
-        Prices: "1500",
-        age: "3 months",
-        status: "Available",
+        id: "STF-001",
+        firstName: "Juan",
+        lastName: "Dela Cruz",
+        Position: "Green Valley Cooperative",
+        address: "San Jorge, Samar",
+        email: "juan.delacruz@example.com",
+        contactNumber: "0917 123 4567",
+        status: "Active",
     },
     {
-        id: "INV-002",
-        seedlingType: "Gmelina",
-        scientificName: "Gmelina arborea",
-        quantity: 1800,
-        available: 1650,
-        Prices: "1800",
-        age: "2 months",
-        status: "Available",
-    },
-    {
-        id: "INV-003",
-        seedlingType: "Narra",
-        scientificName: "Pterocarpus indicus",
-        quantity: 1200,
-        available: 900,
-        Prices: "1800",
-        age: "4 months",
-        status: "Available",
-    },
-    {
-        id: "INV-004",
-        seedlingType: "Mangium",
-        scientificName: "Acacia mangium",
-        quantity: 950,
-        available: 0,
-        Prices: "1200",
-        age: "3 months",
-        status: "Out of Stock",
-    },
-    {
-        id: "INV-005",
-        seedlingType: "Tindalo",
-        scientificName: "Afzelia rhomboidea",
-        quantity: 750,
-        available: 620,
-        Prices: "1800",
-        age: "2 months",
-        status: "Available",
+        id: "STF-002",
+        firstName: "Maria",
+        lastName: "Santos",
+        Position: "San Jorge Farmers Association",
+        address: "San Jorge, Samar",
+        email: "maria.santos@example.com",
+        contactNumber: "0918 234 5678",
+        status: "Active",
     },
 ];
 
-const InventoryTable = () => {
+const StaffTable = () => {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    const filteredSeedlings = useMemo(() => {
-        return seedlings.filter((seedling) => {
+    const filteredStaff = useMemo(() => {
+        return staff.filter((employee) => {
             const searchTerm = search.toLowerCase().trim();
             const matchesSearch =
-                seedling.id.toLowerCase().includes(searchTerm) ||
-                seedling.seedlingType.toLowerCase().includes(searchTerm) ||
-                seedling.scientificName.toLowerCase().includes(searchTerm) ||
-                seedling.location.toLowerCase().includes(searchTerm) ||
-                seedling.age.toLowerCase().includes(searchTerm) ||
-                seedling.status.toLowerCase().includes(searchTerm);
-
+                employee.id.toLowerCase().includes(searchTerm) ||
+                employee.firstName.toLowerCase().includes(searchTerm) ||
+                employee.lastName.toLowerCase().includes(searchTerm) ||
+                `${employee.firstName} ${employee.lastName}`
+                    .toLowerCase()
+                    .includes(searchTerm) ||
+                employee.Position.toLowerCase().includes(searchTerm) ||
+                employee.address.toLowerCase().includes(searchTerm) ||
+                employee.email.toLowerCase().includes(searchTerm) ||
+                employee.contactNumber.toLowerCase().includes(searchTerm) ||
+                employee.status.toLowerCase().includes(searchTerm);
             const matchesStatus =
                 statusFilter === "all" ||
-                seedling.status.toLowerCase() === statusFilter;
-
+                employee.status.toLowerCase() === statusFilter;
             return matchesSearch && matchesStatus;
         });
     }, [search, statusFilter]);
 
     const totalPages = Math.ceil(
-        filteredSeedlings.length / itemsPerPage
+        filteredStaff.length / itemsPerPage
     );
 
-    const paginatedSeedlings = useMemo(() => {
+    const paginatedStaff = useMemo(() => {
         const startIndex =
             (currentPage - 1) * itemsPerPage;
 
         const endIndex =
             startIndex + itemsPerPage;
 
-        return filteredSeedlings.slice(
+        return filteredStaff.slice(
             startIndex,
             endIndex
         );
-    }, [filteredSeedlings, currentPage]);
+    }, [filteredStaff, currentPage]);
 
     const handleSearch = (value) => {
         setSearch(value);
@@ -155,25 +119,26 @@ const InventoryTable = () => {
     };
 
     const startItem =
-        filteredSeedlings.length === 0
+        filteredStaff.length === 0
             ? 0
             : (currentPage - 1) * itemsPerPage + 1;
 
     const endItem = Math.min(
         currentPage * itemsPerPage,
-        filteredSeedlings.length
+        filteredStaff.length
     );
 
 
     return (
         <div className="grid gap-2">
             <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
                 <div className="w-80">
                     <InputGroup>
                         <InputGroupInput
                             id="search"
                             type="search"
-                            placeholder="Search seedlings..."
+                            placeholder="Search..."
                             value={search}
                             onChange={(e) =>
                                 handleSearch(e.target.value)
@@ -184,75 +149,49 @@ const InventoryTable = () => {
                         </InputGroupAddon>
                     </InputGroup>
                 </div>
-
                 <Select value={statusFilter} onValueChange={handleStatusChange}>
                     <SelectTrigger className="w-52">
-                        <SelectValue placeholder="Inventory Status" />
+                        <SelectValue placeholder="Account Status" />
                     </SelectTrigger>
                     <SelectContent position="popper">
-                        <SelectItem value="all">All Seedlings</SelectItem>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="out of stock">Out of Stock</SelectItem>
+                        <SelectItem value="all">All Accounts</SelectItem>
+                        <SelectItem value="active">Active Accounts</SelectItem>
+                        <SelectItem value="deactivated">Deactivated Accounts</SelectItem>
                     </SelectContent>
                 </Select>
+                </div>
+                <AddStaff />
             </div>
 
             <div className="overflow-hidden rounded-md border">
                 <Table className="p-0">
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Seedling Type</TableHead>
-                            <TableHead>Scientific Name</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Available</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Age</TableHead>
+                            <TableHead>Staff ID</TableHead>
+                            <TableHead>Staff Name</TableHead>
+                            <TableHead>Position</TableHead>
+                            <TableHead>Address</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Contact Number</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">
-                                Action
-                            </TableHead>
+                            <TableHead>Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {paginatedSeedlings.length > 0 ? (
-                            paginatedSeedlings.map((seedling) => (
-                                <TableRow key={seedling.id}>
-                                    <TableCell>{seedling.id}</TableCell>
-                                    <TableCell>{seedling.seedlingType}</TableCell>
-                                    <TableCell className="text-muted-foreground">{seedling.scientificName}</TableCell>
-                                    <TableCell>{seedling.quantity.toLocaleString()}</TableCell>
-                                    <TableCell>{seedling.available.toLocaleString()}</TableCell>
-                                    <TableCell>{seedling.Prices}</TableCell>
-                                    <TableCell>{seedling.age}</TableCell>
-                                    <TableCell>{seedling.status}</TableCell>
+                        {paginatedStaff.length > 0 ? (
+                            paginatedStaff.map((employee) => (
+                                <TableRow key={employee.id}>
+                                    <TableCell>{employee.id}</TableCell>
+                                    <TableCell>{employee.firstName}{" "}{employee.lastName}</TableCell>
+                                    <TableCell>{employee.Position}</TableCell>
+                                    <TableCell>{employee.address}</TableCell>
+                                    <TableCell>{employee.email}</TableCell>
+                                    <TableCell>{employee.contactNumber}</TableCell>
+                                    <TableCell>{employee.status}</TableCell>
                                     <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <Ellipsis />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-full">
-                                                <DropdownMenuItem>
-                                                    <Eye />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <Pencil />
-                                                    Edit Seedling
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <SlidersHorizontal />
-                                                    Adjust Quantity
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                                    <Archive />
-                                                    Archive
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <Button variant="destructive" size="icon">
+                                            <Trash />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -260,9 +199,9 @@ const InventoryTable = () => {
                         ) : (
 
                             <TableRow>
-                                <TableCell colSpan={10} className="text-center">
+                                <TableCell colSpan={8} className="text-center">
                                     <Ghost className="mx-auto" />
-                                    No seedlings found.
+                                    No staff members found.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -273,8 +212,8 @@ const InventoryTable = () => {
 
                 <div className="bg-white flex items-center justify-between px-4 py-3">
                     <div className="text-sm text-muted-foreground">
-                        {filteredSeedlings.length > 0
-                            ? `Showing ${startItem}-${endItem} of ${filteredSeedlings.length}`
+                        {filteredStaff.length > 0
+                            ? `Showing ${startItem}-${endItem} of ${filteredStaff.length}`
                             : "No results"}
                     </div>
 
@@ -348,4 +287,4 @@ const InventoryTable = () => {
     );
 };
 
-export default InventoryTable;
+export default StaffTable;
