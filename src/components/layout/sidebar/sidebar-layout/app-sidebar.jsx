@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 
 const navMain = [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
     {
         title: "User Management",
         url: "#",
