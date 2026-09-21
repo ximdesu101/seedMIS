@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://seedmis-server-production.up.railway.app/api';
+// Automatic environment detection
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
+const API_BASE_URL = isProduction 
+    ? 'https://seedmis-server-production.up.railway.app/api'  // Vercel deployment
+    : 'http://localhost:8000/api';  // Local development
+
+console.log('🚀 Environment:', isProduction ? 'Production (Vercel)' : 'Development (localhost)');
 console.log('🚀 API Base URL:', API_BASE_URL);
 
 const api = axios.create({
