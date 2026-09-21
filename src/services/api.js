@@ -2,13 +2,15 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://seedmis-server-production.up.railway.app/api';
 
+console.log('🚀 API Base URL:', API_BASE_URL);
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
-    timeout: 10000,
+    timeout: 30000,
 });
 
 // Request interceptor

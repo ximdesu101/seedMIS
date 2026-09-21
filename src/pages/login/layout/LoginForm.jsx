@@ -58,7 +58,7 @@ const LoginForm = () => {
                 localStorage.setItem('userType', response.data.user_type);
                 
                 toast.success("Login successful!", {
-                    description: `Welcome back, ${response.data.user.name}!`
+                    description: `Welcome, ${response.data.user.name}!`
                 });
                 
                 setTimeout(() => {
@@ -112,7 +112,7 @@ const LoginForm = () => {
                         
                         <div className="text-center space-y-2">
                             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#016146] to-[#014d38] bg-clip-text text-transparent">
-                                Welcome Back
+                                Welcome
                             </CardTitle>
                             <CardDescription className="text-base text-gray-600">
                                 Sign in to SeedMIS System
