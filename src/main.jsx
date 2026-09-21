@@ -5,11 +5,13 @@ import App from './App.jsx'
 import { router } from './route/routes.jsx'
 import { RouterProvider } from 'react-router-dom'
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <TooltipProvider delayDuration={0}>
       <RouterProvider router={router} />
+      <Toaster position="top-right" richColors />
     </TooltipProvider>
   </StrictMode>,
 )

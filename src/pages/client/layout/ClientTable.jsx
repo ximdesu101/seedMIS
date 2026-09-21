@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -32,60 +32,92 @@ import {
 import {
     Trash,
     Search,
-    Ghost
+    Ghost,
+    Loader2
 } from "lucide-react";
 import AddClient from "./AddClient";
-
-const clients = [
-    {
-        id: "CLI-001",
-        firstName: "Juan",
-        lastName: "Dela Cruz",
-        organization: "Green Valley Cooperative",
-        address: "San Jorge, Samar",
-        email: "juan.delacruz@example.com",
-        contactNumber: "0917 123 4567",
-        status: "Active",
-    },
-    {
-        id: "CLI-002",
-        firstName: "Maria",
-        lastName: "Santos",
-        organization: "San Jorge Farmers Association",
-        address: "San Jorge, Samar",
-        email: "maria.santos@example.com",
-        contactNumber: "0918 234 5678",
-        status: "Active",
-    },
-];
+import EditClient from "./EditClient";
+import clientService from "@/services/clientService";
+import { toast } from "sonner";
 
 const ClientTable = () => {
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
+    // Fetch clients from API
+    useEffect(() => {
+        fetchClients();
+    }, []);
+
+    const fetchClients = async () => {
+        try {
+            setLoading(true);
+            const response = await clientService.getAllClients();
+            if (response.success) {
+                setClients(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching clients:", error);
+            toast.error("Failed to load clients", {
+                description: "Please make sure the backend server is running"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClientAdded = () => {
+        fetchClients(); // Refresh the list when a new client is added
+    };
+
+    const handleDeleteClient = async (id, clientName) => {
+        if (!confirm(`Are you sure you want to delete ${clientName}?`)) {
+            return;
+        }
+
+        try {
+            const response = await clientService.deleteClient(id);
+            if (response.success) {
+                toast.success("Client deleted successfully!", {
+                    description: `${clientName} has been removed from the system.`
+                });
+                fetchClients(); // Refresh the list
+            }
+        } catch (error) {
+            console.error("Error deleting client:", error);
+            toast.error("Failed to delete client", {
+                description: error.response?.data?.message || "Please try again"
+            });
+        }
+    };
+
     const filteredClients = useMemo(() => {
         return clients.filter((client) => {
             const searchTerm = search.toLowerCase().trim();
+            const fullName = `${client.first_name} ${client.middle_name || ''} ${client.last_name}`.toLowerCase();
+            const fullAddress = `${client.barangay}, ${client.municipality}, ${client.province}`.toLowerCase();
+            
             const matchesSearch =
-                client.id.toLowerCase().includes(searchTerm) ||
-                client.firstName.toLowerCase().includes(searchTerm) ||
-                client.lastName.toLowerCase().includes(searchTerm) ||
-                `${client.firstName} ${client.lastName}`
-                    .toLowerCase()
-                    .includes(searchTerm) ||
+                client.client_id.toLowerCase().includes(searchTerm) ||
+                client.first_name.toLowerCase().includes(searchTerm) ||
+                client.last_name.toLowerCase().includes(searchTerm) ||
+                fullName.includes(searchTerm) ||
                 client.organization.toLowerCase().includes(searchTerm) ||
-                client.address.toLowerCase().includes(searchTerm) ||
+                fullAddress.includes(searchTerm) ||
                 client.email.toLowerCase().includes(searchTerm) ||
-                client.contactNumber.toLowerCase().includes(searchTerm) ||
-                client.status.toLowerCase().includes(searchTerm);
-            const matchesStatus =
-                statusFilter === "all" ||
-                client.status.toLowerCase() === statusFilter;
+                client.contact_number.includes(searchTerm);
+            
+            // Status filter - for now all clients are active
+            // You can add a status field to your database later
+            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            
             return matchesSearch && matchesStatus;
         });
-    }, [search, statusFilter]);
+    }, [clients, search, statusFilter]);
 
     const totalPages = Math.ceil(
         filteredClients.length / itemsPerPage
@@ -161,7 +193,7 @@ const ClientTable = () => {
                     </SelectContent>
                 </Select>
             </div>
-            <AddClient />
+            <AddClient onClientAdded={handleClientAdded} />
         </div>
             <div className="overflow-hidden rounded-md border">
                 <Table className="p-0">
@@ -178,30 +210,60 @@ const ClientTable = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {paginatedClients.length > 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">Loading clients...</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedClients.length > 0 ? (
                             paginatedClients.map((client) => (
                                 <TableRow key={client.id}>
-                                    <TableCell>{client.id}</TableCell>
-                                    <TableCell>{client.firstName}{" "}{client.lastName}</TableCell>
+                                    <TableCell>{client.client_id}</TableCell>
+                                    <TableCell>
+                                        {client.first_name} {client.middle_name && `${client.middle_name} `}{client.last_name}
+                                    </TableCell>
                                     <TableCell>{client.organization}</TableCell>
-                                    <TableCell>{client.address}</TableCell>
+                                    <TableCell>
+                                        {client.barangay}, {client.municipality}, {client.province}
+                                    </TableCell>
                                     <TableCell>{client.email}</TableCell>
-                                    <TableCell>{client.contactNumber}</TableCell>
-                                    <TableCell>{client.status}</TableCell>
+                                    <TableCell>{client.contact_number}</TableCell>
+                                    <TableCell>
+                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                                            Active
+                                        </span>
+                                    </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="destructive" size="icon">
-                                            <Trash />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <EditClient 
+                                                client={client} 
+                                                onClientUpdated={fetchClients}
+                                            />
+                                            <Button 
+                                                variant="destructive" 
+                                                size="icon"
+                                                onClick={() => handleDeleteClient(
+                                                    client.id, 
+                                                    `${client.first_name} ${client.last_name}`
+                                                )}
+                                            >
+                                                <Trash />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
-
                         ) : (
-
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center">
-                                    <Ghost className="mx-auto" />
-                                    No clients found.
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Ghost className="h-8 w-8 text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">No clients found.</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}

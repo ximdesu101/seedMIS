@@ -6,8 +6,10 @@ import {
     Truck,
     ClipboardList,
     ChartNoAxesCombined,
-    Logs
+    Logs,
+    LogOut
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { NavMain } from "@/components/layout/sidebar/sidebar-layout/nav-main";
 import {
@@ -18,28 +20,39 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail,
+    SidebarFooter,
 } from '@/components/ui/sidebar';
-
-const navMain = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    {
-        title: "User Management",
-        url: "#",
-        icon: Users,
-        items: [
-            { title: "Client Account", url: "/client" },
-            { title: "Staff Account", url: "/staff" },
-        ],
-    },
-    { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
-    { title: "Seedling Production", url: "seedling-production", icon: Sprout },
-    { title: "Distribution", url: "#", icon: Truck },
-    { title: "Request", url: "/requests", icon: ClipboardList },
-    { title: "Reports", url: "#", icon: ChartNoAxesCombined },
-    { title: "Activity Logs", url: "#", icon: Logs },
-];
+import { toast } from "sonner";
 
 export function AppSidebar({ ...props }) {
+    const navigate = useNavigate();
+
+    const navMain = [
+        { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+        {
+            title: "User Management",
+            url: "#",
+            icon: Users,
+            items: [
+                { title: "Client Account", url: "/client" },
+                { title: "Staff Account", url: "/staff" },
+            ],
+        },
+        { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
+        { title: "Seedling Production", url: "/seedling-production", icon: Sprout },
+        { title: "Distribution", url: "/distribute", icon: Truck },
+        { title: "Request", url: "/requests", icon: ClipboardList },
+        { title: "Reports", url: "#", icon: ChartNoAxesCombined },
+        { title: "Activity Logs", url: "#", icon: Logs },
+    ];
+
+    const handleLogout = () => {
+        localStorage.removeItem('user');
+        localStorage.removeItem('userType');
+        toast.success("Logged out successfully");
+        navigate('/login');
+    };
+
     return (
         <Sidebar collapsible="icon" {...props}>
             <SidebarHeader>
@@ -64,6 +77,16 @@ export function AppSidebar({ ...props }) {
             <SidebarContent>
                 <NavMain items={navMain} />
             </SidebarContent>
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={handleLogout} className="text-white hover:text-white hover:bg-green-600 focus:bg-green-600 focus:text-white">
+                            <LogOut className="size-4" />
+                            <span>Logout</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
             <SidebarRail />
         </Sidebar>
     )

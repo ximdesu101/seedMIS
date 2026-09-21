@@ -22,7 +22,7 @@ import {
     InputGroupInput,
 } from "@/components/ui/input-group";
 import {
-    CirclePlus,
+    Pencil,
     Eye,
     EyeOff,
     Loader2,
@@ -30,7 +30,7 @@ import {
 import clientService from "@/services/clientService";
 import { toast } from "sonner";
 
-const AddClient = ({ onClientAdded }) => {
+const EditClient = ({ client, onClientUpdated }) => {
     const [showPassword, setShowPassword] = React.useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -52,10 +52,29 @@ const AddClient = ({ onClientAdded }) => {
         password_confirmation: "",
     });
 
+    // Load client data when dialog opens
+    React.useEffect(() => {
+        if (isOpen && client) {
+            setFormData({
+                client_id: client.client_id || "",
+                organization: client.organization || "",
+                first_name: client.first_name || "",
+                middle_name: client.middle_name || "",
+                last_name: client.last_name || "",
+                email: client.email || "",
+                contact_number: client.contact_number || "",
+                barangay: client.barangay || "",
+                municipality: client.municipality || "",
+                province: client.province || "",
+                password: "",
+                password_confirmation: "",
+            });
+        }
+    }, [isOpen, client]);
+
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         
-        // Map field IDs to state keys
         const fieldMapping = {
             'client-id': 'client_id',
             'organization': 'organization',
@@ -75,15 +94,12 @@ const AddClient = ({ onClientAdded }) => {
         
         let processedValue = value;
         
-        // For contact number, only allow numbers
         if (id === 'contact-number') {
             processedValue = value.replace(/\D/g, '');
         } 
-        // For password fields and email, keep as is (case-sensitive)
         else if (id === 'password' || id === 'confirm-password' || id === 'email') {
             processedValue = value;
         }
-        // For all other text fields, convert to uppercase
         else {
             processedValue = value.toUpperCase();
         }
@@ -93,7 +109,6 @@ const AddClient = ({ onClientAdded }) => {
             [stateKey]: processedValue
         }));
         
-        // Clear error for this field when user starts typing
         if (errors[id]) {
             setErrors(prev => ({
                 ...prev,
@@ -108,17 +123,18 @@ const AddClient = ({ onClientAdded }) => {
         if (!formData.client_id) newErrors['client-id'] = "Client ID is required";
         if (!formData.organization) newErrors['organization'] = "Organization is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
-        // middle_name is optional - no validation needed
         if (!formData.last_name) newErrors['last-name'] = "Last name is required";
         if (!formData.email) newErrors['email'] = "Email is required";
         if (!formData.contact_number) newErrors['contact-number'] = "Contact number is required";
         if (!formData.barangay) newErrors['brgy'] = "Barangay is required";
         if (!formData.municipality) newErrors['municipality'] = "Municipality is required";
         if (!formData.province) newErrors['province'] = "Province is required";
-        if (!formData.password) newErrors['password'] = "Password is required";
-        if (formData.password.length < 8) newErrors['password'] = "Password must be at least 8 characters";
-        if (!formData.password_confirmation) newErrors['confirm-password'] = "Confirm password is required";
-        if (formData.password !== formData.password_confirmation) {
+        
+        // Password is optional for update
+        if (formData.password && formData.password.length < 8) {
+            newErrors['password'] = "Password must be at least 8 characters";
+        }
+        if (formData.password && formData.password !== formData.password_confirmation) {
             newErrors['confirm-password'] = "Passwords do not match";
         }
 
@@ -127,20 +143,6 @@ const AddClient = ({ onClientAdded }) => {
     };
 
     const resetForm = () => {
-        setFormData({
-            client_id: "",
-            organization: "",
-            first_name: "",
-            middle_name: "",
-            last_name: "",
-            email: "",
-            contact_number: "",
-            barangay: "",
-            municipality: "",
-            province: "",
-            password: "",
-            password_confirmation: "",
-        });
         setErrors({});
         setShowPassword(false);
         setShowConfirmPassword(false);
@@ -157,26 +159,30 @@ const AddClient = ({ onClientAdded }) => {
         setIsSubmitting(true);
 
         try {
-            const response = await clientService.createClient(formData);
+            // Prepare update data (exclude password if empty)
+            const updateData = { ...formData };
+            if (!updateData.password) {
+                delete updateData.password;
+                delete updateData.password_confirmation;
+            }
+
+            const response = await clientService.updateClient(client.id, updateData);
             
             if (response.success) {
-                toast.success("Client added successfully!", {
-                    description: `${formData.first_name} ${formData.last_name} has been added to the system.`
+                toast.success("Client updated successfully!", {
+                    description: `${formData.first_name} ${formData.last_name} has been updated.`
                 });
                 resetForm();
                 setIsOpen(false);
                 
-                // Call the callback to refresh the client list
-                if (onClientAdded) {
-                    onClientAdded();
+                if (onClientUpdated) {
+                    onClientUpdated();
                 }
             }
         } catch (error) {
-            console.error("Error adding client:", error);
-            console.error("Error response:", error.response);
+            console.error("Error updating client:", error);
             
             if (error.response?.data?.errors) {
-                // Handle validation errors from backend
                 const backendErrors = {};
                 const errorMessages = [];
                 
@@ -187,8 +193,6 @@ const AddClient = ({ onClientAdded }) => {
                 });
                 
                 setErrors(backendErrors);
-                
-                // Show first error in toast
                 toast.error("Validation Error", {
                     description: errorMessages[0]
                 });
@@ -196,12 +200,8 @@ const AddClient = ({ onClientAdded }) => {
                 toast.error("Error", {
                     description: error.response.data.message
                 });
-            } else if (error.message) {
-                toast.error("Network Error", {
-                    description: "Make sure the backend server is running at http://localhost:8000"
-                });
             } else {
-                toast.error("Failed to add client. Please try again.");
+                toast.error("Failed to update client. Please try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -211,9 +211,8 @@ const AddClient = ({ onClientAdded }) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-[#016146] hover:bg-[#014d38]">
-                    <CirclePlus />
-                    Add Client
+                <Button variant="outline" size="icon">
+                    <Pencil className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
 
@@ -222,9 +221,9 @@ const AddClient = ({ onClientAdded }) => {
                 onInteractOutside={(event) => event.preventDefault()}
             >
                 <DialogHeader>
-                    <DialogTitle>New Client Member</DialogTitle>
+                    <DialogTitle>Edit Client</DialogTitle>
                     <DialogDescription>
-                        Add a new client member and enter their details.
+                        Update client information. Leave password empty to keep current password.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -250,9 +249,7 @@ const AddClient = ({ onClientAdded }) => {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="organization">
-                                Organization
-                            </FieldLabel>
+                            <FieldLabel htmlFor="organization">Organization</FieldLabel>
                             <InputGroup>
                                 <InputGroupInput
                                     id="organization"
@@ -270,9 +267,7 @@ const AddClient = ({ onClientAdded }) => {
 
                         <FieldGroup className="grid grid-cols-2 gap-4">
                             <Field>
-                                <FieldLabel htmlFor="first-name">
-                                    First Name
-                                </FieldLabel>
+                                <FieldLabel htmlFor="first-name">First Name</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="first-name"
@@ -304,9 +299,7 @@ const AddClient = ({ onClientAdded }) => {
                             </Field>
 
                             <Field>
-                                <FieldLabel htmlFor="last-name">
-                                    Last Name
-                                </FieldLabel>
+                                <FieldLabel htmlFor="last-name">Last Name</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="last-name"
@@ -342,9 +335,7 @@ const AddClient = ({ onClientAdded }) => {
 
                         <FieldGroup className="grid grid-cols-2 gap-4">
                             <Field>
-                                <FieldLabel htmlFor="contact-number">
-                                    Contact Number
-                                </FieldLabel>
+                                <FieldLabel htmlFor="contact-number">Contact Number</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="contact-number"
@@ -380,9 +371,7 @@ const AddClient = ({ onClientAdded }) => {
                             </Field>
 
                             <Field>
-                                <FieldLabel htmlFor="municipality">
-                                    Municipality
-                                </FieldLabel>
+                                <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="municipality"
@@ -399,9 +388,7 @@ const AddClient = ({ onClientAdded }) => {
                             </Field>
 
                             <Field>
-                                <FieldLabel htmlFor="province">
-                                    Province
-                                </FieldLabel>
+                                <FieldLabel htmlFor="province">Province</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="province"
@@ -421,7 +408,7 @@ const AddClient = ({ onClientAdded }) => {
                         <FieldGroup className="grid grid-cols-2 gap-4">
                             <Field>
                                 <FieldLabel htmlFor="password">
-                                    Password
+                                    Password <span className="text-gray-400 text-sm">(Leave empty to keep current)</span>
                                 </FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -430,27 +417,14 @@ const AddClient = ({ onClientAdded }) => {
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={handleInputChange}
-                                        required
                                     />
                                     <InputGroupAddon align="end">
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setShowPassword(
-                                                    (value) => !value
-                                                )
-                                            }
-                                            aria-label={
-                                                showPassword
-                                                    ? "Hide password"
-                                                    : "Show password"
-                                            }
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
                                         >
-                                            {showPassword ? (
-                                                <EyeOff size={18} />
-                                            ) : (
-                                                <Eye size={18} />
-                                            )}
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </InputGroupAddon>
                                 </InputGroup>
@@ -460,41 +434,22 @@ const AddClient = ({ onClientAdded }) => {
                             </Field>
 
                             <Field>
-                                <FieldLabel htmlFor="confirm-password">
-                                    Confirm Password
-                                </FieldLabel>
+                                <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
                                         id="confirm-password"
-                                        type={
-                                            showConfirmPassword
-                                                ? "text"
-                                                : "password"
-                                        }
+                                        type={showConfirmPassword ? "text" : "password"}
                                         placeholder="••••••••"
                                         value={formData.password_confirmation}
                                         onChange={handleInputChange}
-                                        required
                                     />
                                     <InputGroupAddon align="end">
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setShowConfirmPassword(
-                                                    (value) => !value
-                                                )
-                                            }
-                                            aria-label={
-                                                showConfirmPassword
-                                                    ? "Hide confirm password"
-                                                    : "Show confirm password"
-                                            }
+                                            onClick={() => setShowConfirmPassword((value) => !value)}
+                                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                                         >
-                                            {showConfirmPassword ? (
-                                                <EyeOff size={18} />
-                                            ) : (
-                                                <Eye size={18} />
-                                            )}
+                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </InputGroupAddon>
                                 </InputGroup>
@@ -507,29 +462,21 @@ const AddClient = ({ onClientAdded }) => {
 
                     <DialogFooter className="mt-4">
                         <DialogClose asChild>
-                            <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={resetForm}
-                            >
-                                Close
+                            <Button type="button" variant="outline" onClick={resetForm}>
+                                Cancel
                             </Button>
                         </DialogClose>
 
-                        <Button 
-                            type="submit" 
-                            className="bg-[#016146] hover:bg-[#014d38]"
-                            disabled={isSubmitting}
-                        >
+                        <Button type="submit" className="bg-[#016146] hover:bg-[#014d38]" disabled={isSubmitting}>
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="animate-spin" />
-                                    Adding...
+                                    Updating...
                                 </>
                             ) : (
                                 <>
-                                    <CirclePlus />
-                                    Add Client
+                                    <Pencil />
+                                    Update Client
                                 </>
                             )}
                         </Button>
@@ -540,4 +487,4 @@ const AddClient = ({ onClientAdded }) => {
     );
 };
 
-export default AddClient;
+export default EditClient;
