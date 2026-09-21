@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import inventoryService from "@/services/inventoryService";
 import {
     Table,
     TableBody,
@@ -32,112 +33,67 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
     Search,
     Ellipsis,
-    Eye,
     Pencil,
-    Archive,
-    SlidersHorizontal,
 } from "lucide-react";
-
-const seedlings = [
-    {
-        id: "INV-001",
-        seedlingType: "Mahogany",
-        scientificName: "Swietenia macrophylla",
-        quantity: 2500,
-        available: 2200,
-        Prices: "1500",
-        age: "3 months",
-        status: "Available",
-    },
-    {
-        id: "INV-002",
-        seedlingType: "Gmelina",
-        scientificName: "Gmelina arborea",
-        quantity: 1800,
-        available: 1650,
-        Prices: "1800",
-        age: "2 months",
-        status: "Available",
-    },
-    {
-        id: "INV-003",
-        seedlingType: "Narra",
-        scientificName: "Pterocarpus indicus",
-        quantity: 1200,
-        available: 900,
-        Prices: "1800",
-        age: "4 months",
-        status: "Available",
-    },
-    {
-        id: "INV-004",
-        seedlingType: "Mangium",
-        scientificName: "Acacia mangium",
-        quantity: 950,
-        available: 0,
-        Prices: "1200",
-        age: "3 months",
-        status: "Out of Stock",
-    },
-    {
-        id: "INV-005",
-        seedlingType: "Tindalo",
-        scientificName: "Afzelia rhomboidea",
-        quantity: 750,
-        available: 620,
-        Prices: "1800",
-        age: "2 months",
-        status: "Available",
-    },
-];
+import UpdateInventory from "./UpdateInventory";
+import ViewBatches from "./ViewBatches";
 
 const InventoryTable = () => {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [inventories, setInventories] = useState([]);
+    const [loading, setLoading] = useState(true);
     const itemsPerPage = 5;
 
-    const filteredSeedlings = useMemo(() => {
-        return seedlings.filter((seedling) => {
-            const searchTerm = search.toLowerCase().trim();
-            const matchesSearch =
-                seedling.id.toLowerCase().includes(searchTerm) ||
-                seedling.seedlingType.toLowerCase().includes(searchTerm) ||
-                seedling.scientificName.toLowerCase().includes(searchTerm) ||
-                seedling.location.toLowerCase().includes(searchTerm) ||
-                seedling.age.toLowerCase().includes(searchTerm) ||
-                seedling.status.toLowerCase().includes(searchTerm);
+    useEffect(() => {
+        fetchInventories();
+    }, []);
 
+    const fetchInventories = async () => {
+        try {
+            setLoading(true);
+            const response = await inventoryService.getAllInventories();
+            if (response.success) {
+                setInventories(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching inventories:', error);
+            alert('Failed to load inventories');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredSeedlings = useMemo(() => {
+        return inventories.filter((item) => {
+            const searchTerm = search.toLowerCase().trim();
+
+            const matchesSearch =
+                item.seedling_type?.toLowerCase().includes(searchTerm) ||
+                item.classification?.toLowerCase().includes(searchTerm) ||
+                item.location?.toLowerCase().includes(searchTerm);
+
+            const totalQty = item.total_quantity || 0;
+            const status = totalQty > 0 ? 'available' : 'out of stock';
             const matchesStatus =
-                statusFilter === "all" ||
-                seedling.status.toLowerCase() === statusFilter;
+                statusFilter === "all" || status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
-    }, [search, statusFilter]);
+    }, [search, statusFilter, inventories]);
 
-    const totalPages = Math.ceil(
-        filteredSeedlings.length / itemsPerPage
-    );
+    const totalPages = Math.ceil(filteredSeedlings.length / itemsPerPage);
 
     const paginatedSeedlings = useMemo(() => {
-        const startIndex =
-            (currentPage - 1) * itemsPerPage;
-
-        const endIndex =
-            startIndex + itemsPerPage;
-
-        return filteredSeedlings.slice(
-            startIndex,
-            endIndex
-        );
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return filteredSeedlings.slice(startIndex, endIndex);
     }, [filteredSeedlings, currentPage]);
 
     const handleSearch = (value) => {
@@ -154,115 +110,138 @@ const InventoryTable = () => {
         setCurrentPage(page);
     };
 
-    const startItem =
-        filteredSeedlings.length === 0
-            ? 0
-            : (currentPage - 1) * itemsPerPage + 1;
-
-    const endItem = Math.min(
-        currentPage * itemsPerPage,
-        filteredSeedlings.length
-    );
-
+    const startItem = filteredSeedlings.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredSeedlings.length);
 
     return (
         <div className="grid gap-2">
             <div className="flex items-center justify-between">
-                <div className="w-80">
-                    <InputGroup>
-                        <InputGroupInput
-                            id="search"
-                            type="search"
-                            placeholder="Search seedlings..."
-                            value={search}
-                            onChange={(e) =>
-                                handleSearch(e.target.value)
-                            }
-                        />
-                        <InputGroupAddon>
-                            <Search />
-                        </InputGroupAddon>
-                    </InputGroup>
-                </div>
+                <div className="flex gap-4">
+                    <div className="w-80">
+                        <InputGroup>
+                            <InputGroupInput
+                                id="search"
+                                type="search"
+                                placeholder="Search seedlings..."
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                            />
+                            <InputGroupAddon>
+                                <Search />
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </div>
 
-                <Select value={statusFilter} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="w-52">
-                        <SelectValue placeholder="Inventory Status" />
-                    </SelectTrigger>
-                    <SelectContent position="popper">
-                        <SelectItem value="all">All Seedlings</SelectItem>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="out of stock">Out of Stock</SelectItem>
-                    </SelectContent>
-                </Select>
+                    <div>
+                        <Select value={statusFilter} onValueChange={handleStatusChange}>
+                            <SelectTrigger className="w-52">
+                                <SelectValue placeholder="All Seedlings" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                                <SelectItem value="all">All Seedlings</SelectItem>
+                                <SelectItem value="available">Available</SelectItem>
+                                <SelectItem value="out of stock">Out of Stock</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </div>
 
             <div className="overflow-hidden rounded-md border">
                 <Table className="p-0">
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Seedling Type</TableHead>
-                            <TableHead>Scientific Name</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Available</TableHead>
+                            <TableHead className="w-[350px] min-w-[350px]">Seedling Information</TableHead>
+                            <TableHead>Classification</TableHead>
+                            <TableHead>Total Quantity</TableHead>
                             <TableHead>Price</TableHead>
-                            <TableHead>Age</TableHead>
+                            <TableHead>Location</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">
-                                Action
-                            </TableHead>
+                            <TableHead className="text-right">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {paginatedSeedlings.length > 0 ? (
-                            paginatedSeedlings.map((seedling) => (
-                                <TableRow key={seedling.id}>
-                                    <TableCell>{seedling.id}</TableCell>
-                                    <TableCell>{seedling.seedlingType}</TableCell>
-                                    <TableCell className="text-muted-foreground">{seedling.scientificName}</TableCell>
-                                    <TableCell>{seedling.quantity.toLocaleString()}</TableCell>
-                                    <TableCell>{seedling.available.toLocaleString()}</TableCell>
-                                    <TableCell>{seedling.Prices}</TableCell>
-                                    <TableCell>{seedling.age}</TableCell>
-                                    <TableCell>{seedling.status}</TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <Ellipsis />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-full">
-                                                <DropdownMenuItem>
-                                                    <Eye />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <Pencil />
-                                                    Edit Seedling
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <SlidersHorizontal />
-                                                    Adjust Quantity
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                                    <Archive />
-                                                    Archive
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-
-                        ) : (
-
+                        {loading ? (
                             <TableRow>
-                                <TableCell colSpan={10} className="text-center">
-                                    <Ghost className="mx-auto" />
-                                    No seedlings found.
+                                <TableCell colSpan={7} className="text-center">
+                                    Loading...
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedSeedlings.length > 0 ? (
+                            paginatedSeedlings.map((item) => {
+                                const totalQty = item.total_quantity || 0;
+                                const batchCount = item.batch_count || 0;
+                                
+                                return (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="w-[350px] min-w-[350px]">
+                                            <div className="flex items-start gap-3">
+                                                <div className="flex-shrink-0">
+                                                    {item.image_url ? (
+                                                        <img
+                                                            src={`http://localhost:8000/${item.image_url}`}
+                                                            alt={item.seedling_type}
+                                                            className="w-20 h-24 object-cover rounded-md border"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.style.display = 'none';
+                                                                e.target.parentElement.innerHTML = '<div class="w-20 h-24 flex items-center justify-center bg-gray-100 rounded-md border"><span class="text-gray-400 text-xs">Photo</span></div>';
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-20 h-24 flex items-center justify-center bg-gray-100 rounded-md border">
+                                                            <span className="text-gray-400 text-xs">Photo</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0 max-w-[240px]">
+                                                    <h3 className="font-semibold text-sm text-primary mb-1 truncate">
+                                                        {item.seedling_type}
+                                                    </h3>
+                                                    <p className="text-xs text-muted-foreground mb-1 truncate">
+                                                        Classification: {item.classification || 'N/A'}
+                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                                                            {batchCount} {batchCount === 1 ? 'Total Batch'  : 'Total Batch'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{item.classification}</TableCell>
+                                        <TableCell>{totalQty.toLocaleString()}</TableCell>
+                                        <TableCell>₱{parseFloat(item.price_per_unit).toFixed(2)}</TableCell>
+                                        <TableCell>{item.location || 'N/A'}</TableCell>
+                                        <TableCell>
+                                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                                totalQty > 0 
+                                                    ? 'bg-green-50 text-green-700' 
+                                                    : 'bg-red-50 text-red-700'
+                                            }`}>
+                                                {totalQty > 0 ? 'Available' : 'Out of Stock'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon">
+                                                        <Ellipsis />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-full">
+                                                    <ViewBatches inventory={item} />
+                                                    <UpdateInventory inventory={item} onUpdate={fetchInventories} />
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={7} className="text-center">
+                                    No inventory found.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -287,9 +266,7 @@ const InventoryTable = () => {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             if (currentPage > 1) {
-                                                goToPage(
-                                                    currentPage - 1
-                                                );
+                                                goToPage(currentPage - 1);
                                             }
                                         }}
                                         className={
@@ -299,16 +276,11 @@ const InventoryTable = () => {
                                         }
                                     />
                                 </PaginationItem>
-                                {Array.from(
-                                    { length: totalPages },
-                                    (_, index) => index + 1
-                                ).map((page) => (
+                                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
                                     <PaginationItem key={page}>
                                         <PaginationLink
                                             href="#"
-                                            isActive={
-                                                currentPage === page
-                                            }
+                                            isActive={currentPage === page}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 goToPage(page);
@@ -323,13 +295,8 @@ const InventoryTable = () => {
                                         href="#"
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            if (
-                                                currentPage <
-                                                totalPages
-                                            ) {
-                                                goToPage(
-                                                    currentPage + 1
-                                                );
+                                            if (currentPage < totalPages) {
+                                                goToPage(currentPage + 1);
                                             }
                                         }}
                                         className={

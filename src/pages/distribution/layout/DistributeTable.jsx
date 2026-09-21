@@ -14,13 +14,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+
 import {
     Pagination,
     PaginationContent,
@@ -30,18 +24,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
     Search,
-    Ellipsis,
-    Eye,
-    Check,
-    X,
-    PackageCheck,
 } from "lucide-react";
 
 const seedlingRequests = [
@@ -50,26 +33,29 @@ const seedlingRequests = [
         organization: "San Jorge Municipal Agriculture Office",
         seedlingType: "Mahogany",
         quantity: 500,
+        TotalPrices: "1500",
         purpose: "Community Reforestation",
-        requestedDate: "September 2, 2026",
-        status: "Pending",
+        ReleasedDate: "September 2, 2026",
+        status: "Released",
     },
     {
         requester: "Maria Santos",
         organization: "San Jorge Elementary School",
         seedlingType: "Narra",
         quantity: 200,
+        TotalPrices: "1000",
         purpose: "School Greening Program",
-        requestedDate: "September 3, 2026",
-        status: "Approved",
+        ReleasedDate: "September 3, 2026",
+        status: "Released",
     },
     {
         requester: "Pedro Reyes",
         organization: "Barangay San Isidro",
         seedlingType: "Gmelina",
         quantity: 1000,
+        TotalPrices: "2000",
         purpose: "Barangay Reforestation",
-        requestedDate: "September 4, 2026",
+        ReleasedDate: "September 4, 2026",
         status: "Released",
     },
     {
@@ -77,25 +63,25 @@ const seedlingRequests = [
         organization: "San Jorge Farmers Association",
         seedlingType: "Mangium",
         quantity: 750,
+        TotalPrices: "1500",
         purpose: "Farm Boundary Planting",
-        requestedDate: "September 5, 2026",
-        status: "Pending",
+        ReleasedDate: "September 5, 2026",
+        status: "Released",
     },
     {
         requester: "Jose Ramos",
         organization: "Green Earth Organization",
         seedlingType: "Tindalo",
         quantity: 300,
+        TotalPrices: "1200",
         purpose: "Environmental Restoration",
-        requestedDate: "September 6, 2026",
-        status: "Rejected",
+        ReleasedDate: "September 6, 2026",
+        status: "Released",
     },
 ];
 
-const RequestTable = () => {
+const DistributeTable = () => {
     const [search, setSearch] = useState("");
-    const [priorityFilter, setPriorityFilter] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
@@ -111,21 +97,12 @@ const RequestTable = () => {
                 request.priority.toLowerCase().includes(searchTerm) ||
                 request.status.toLowerCase().includes(searchTerm);
 
-            const matchesPriority =
-                priorityFilter === "all" ||
-                request.priority.toLowerCase() === priorityFilter;
-
-            const matchesStatus =
-                statusFilter === "all" ||
-                request.status.toLowerCase() === statusFilter;
-
+           
             return (
-                matchesSearch &&
-                matchesPriority &&
-                matchesStatus
+                matchesSearch
             );
         });
-    }, [search, priorityFilter, statusFilter]);
+    }, [search]);
 
     const totalPages = Math.ceil(
         filteredRequests.length / itemsPerPage
@@ -146,16 +123,6 @@ const RequestTable = () => {
 
     const handleSearch = (value) => {
         setSearch(value);
-        setCurrentPage(1);
-    };
-
-    const handlePriorityChange = (value) => {
-        setPriorityFilter(value);
-        setCurrentPage(1);
-    };
-
-    const handleStatusChange = (value) => {
-        setStatusFilter(value);
         setCurrentPage(1);
     };
 
@@ -193,35 +160,6 @@ const RequestTable = () => {
                             </InputGroupAddon>
                         </InputGroup>
                     </div>
-
-                    <div>
-                        <Select
-                            value={statusFilter}
-                            onValueChange={handleStatusChange}
-                        >
-                            <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-
-                            <SelectContent position="popper">
-                                <SelectItem value="all">
-                                    All Status
-                                </SelectItem>
-                                <SelectItem value="pending">
-                                    Pending
-                                </SelectItem>
-                                <SelectItem value="approved">
-                                    Approved
-                                </SelectItem>
-                                <SelectItem value="rejected">
-                                    Rejected
-                                </SelectItem>
-                                <SelectItem value="released">
-                                    Released
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                 </div>
             </div>
 
@@ -233,12 +171,10 @@ const RequestTable = () => {
                             <TableHead>Organization</TableHead>
                             <TableHead>Various Seedling</TableHead>
                             <TableHead>Quantity</TableHead>
+                            <TableHead>Total Price</TableHead>
                             <TableHead>Purpose</TableHead>
-                            <TableHead>Requested Date</TableHead>
+                            <TableHead>Released Date</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">
-                                Action
-                            </TableHead>
                         </TableRow>
                     </TableHeader>
 
@@ -263,72 +199,31 @@ const RequestTable = () => {
                                         {request.quantity.toLocaleString()}
                                     </TableCell>
 
+                                    <TableCell>
+                                        {request.TotalPrices}
+                                    </TableCell>
+
                                     <TableCell className="max-w-[180px] truncate">
                                         {request.purpose}
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.requestedDate}
+                                        {request.ReleasedDate}
                                     </TableCell>
 
                                     <TableCell>
                                         {request.status}
                                     </TableCell>
 
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                >
-                                                    <Ellipsis />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-
-                                            <DropdownMenuContent
-                                                align="end"
-                                                className="w-full"
-                                            >
-                                                <DropdownMenuItem>
-                                                    <Eye />
-                                                    View Request Details
-                                                </DropdownMenuItem>
-
-                                                {request.status ===
-                                                    "Pending" && (
-                                                        <>
-                                                            <DropdownMenuItem>
-                                                                <Check />
-                                                                Approve Request
-                                                            </DropdownMenuItem>
-
-                                                            <DropdownMenuItem>
-                                                                <X />
-                                                                Reject Request
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-
-                                                {request.status ===
-                                                    "Approved" && (
-                                                        <DropdownMenuItem>
-                                                            <PackageCheck />
-                                                            Release Seedlings
-                                                        </DropdownMenuItem>
-                                                    )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
                                 <TableCell
                                     colSpan={10}
-                                    className="text-center"
+                                    className="h-24 text-center"
                                 >
-                                    No seedling requests found.
+                                    No results.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -418,4 +313,4 @@ const RequestTable = () => {
     );
 };
 
-export default RequestTable;
+export default DistributeTable;

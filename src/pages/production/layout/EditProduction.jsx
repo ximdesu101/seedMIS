@@ -1,8 +1,6 @@
-import * as React from "react";
 import { useState } from "react";
 import { cn } from "cn";
 import { format } from "date-fns";
-import productionService from "@/services/productionService";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
@@ -39,30 +37,26 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    CirclePlus,
+    Pencil,
     Sprout,
     Calendar as CalendarIcon,
     Upload,
     X,
 } from "lucide-react";
+import productionService from "@/services/productionService";
 
-const AddSeedlings = () => {
-    const [dateSown, setDateSown] = useState();
-    const [expectedReadyDate, setExpectedReadyDate] = useState();
-    const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+const EditProduction = ({ production, onUpdate }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [dateSown, setDateSown] = useState(production.date_sown ? new Date(production.date_sown) : undefined);
+    const [expectedReadyDate, setExpectedReadyDate] = useState(production.expected_ready ? new Date(production.expected_ready) : undefined);
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(production.image_url ? `http://localhost:8000/${production.image_url}` : null);
 
-    // Form states
     const [formData, setFormData] = useState({
-        batch_id: '',
-        seedling_type: '',
-        classification: '',
-        quantity_sown: '',
-        current_quantity: '',
-        stage: '',
-        location: '',
+        seedling_type: production.seedling_type || '',
+        classification: production.classification || '',
+        location: production.location || '',
     });
 
     const handleInputChange = (e) => {
@@ -94,23 +88,7 @@ const AddSeedlings = () => {
 
     const handleRemoveImage = () => {
         setImageFile(null);
-        setImagePreview(null);
-    };
-
-    const resetForm = () => {
-        setFormData({
-            batch_id: '',
-            seedling_type: '',
-            classification: '',
-            quantity_sown: '',
-            current_quantity: '',
-            stage: '',
-            location: '',
-        });
-        setDateSown(undefined);
-        setExpectedReadyDate(undefined);
-        setImageFile(null);
-        setImagePreview(null);
+        setImagePreview(production.image_url ? `http://localhost:8000/${production.image_url}` : null);
     };
 
     const handleSubmit = async (e) => {
@@ -120,29 +98,35 @@ const AddSeedlings = () => {
         try {
             const productionData = {
                 ...formData,
-                date_sown: dateSown ? format(dateSown, 'yyyy-MM-dd') : null,
-                expected_ready: expectedReadyDate ? format(expectedReadyDate, 'yyyy-MM-dd') : null,
-                image: imageFile,
+                date_sown: dateSown ? format(dateSown, 'yyyy-MM-dd') : production.date_sown,
+                expected_ready: expectedReadyDate ? format(expectedReadyDate, 'yyyy-MM-dd') : production.expected_ready,
             };
 
-            const response = await productionService.createProduction(productionData);
+            // Only add image if new one was uploaded
+            if (imageFile) {
+                productionData.image = imageFile;
+            }
+
+            const response = await productionService.updateProduction(production.id, productionData);
 
             if (response.success) {
-                alert('Production batch created successfully!');
-                resetForm();
+                alert('Production batch updated successfully!');
                 setDialogOpen(false);
-                // Optionally refresh the production table
-                window.location.reload();
+                if (onUpdate) {
+                    onUpdate();
+                } else {
+                    window.location.reload();
+                }
             }
         } catch (error) {
-            console.error('Error creating production batch:', error);
+            console.error('Error updating production:', error);
             if (error.response && error.response.data) {
                 const errorMessage = error.response.data.errors 
                     ? Object.values(error.response.data.errors).flat().join('\n')
                     : error.response.data.message;
                 alert(`Error: ${errorMessage}`);
             } else {
-                alert('Failed to create production batch. Please try again.');
+                alert('Failed to update production. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
@@ -152,22 +136,29 @@ const AddSeedlings = () => {
     return (
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-[#016146]">
-                    <CirclePlus />
-                    Add Seedlings
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Batch Info
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] !max-w-5xl sm:!max-w-5xl max-h-[90vh] flex flex-col gap-0" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogContent className="w-[90vw] !max-w-3xl sm:!max-w-3xl max-h-[90vh] flex flex-col gap-0" onInteractOutside={(e) => e.preventDefault()}>
                 <form onSubmit={handleSubmit} className="flex flex-col h-full">
                     <DialogHeader className="px-6 pt-6 pb-4">
-                        <DialogTitle>New Production Batch</DialogTitle>
+                        <DialogTitle>Edit Production Batch</DialogTitle>
                         <DialogDescription>
-                            Add a new production batch and enter its details.
+                            Update batch information for {production.batch_id}
                         </DialogDescription>
                     </DialogHeader>
                     <Separator />
                     <div className="overflow-y-auto flex-1 px-6 py-4 max-h-[60vh]">
                         <FieldGroup className="space-y-6">
+                            <Field>
+                                <FieldLabel htmlFor="batch_id">Batch ID</FieldLabel>
+                                <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
+                                    {production.batch_id} (Cannot be changed)
+                                </div>
+                            </Field>
+
                             <Field>
                                 <FieldLabel htmlFor="seedling-image">Seedling Image (Optional)</FieldLabel>
                                 <div className="flex items-start gap-4">
@@ -210,12 +201,12 @@ const AddSeedlings = () => {
                                             >
                                                 <span>
                                                     <Upload className="h-4 w-4 mr-2" />
-                                                    Upload Image
+                                                    {imagePreview ? 'Change Image' : 'Upload Image'}
                                                 </span>
                                             </Button>
                                         </label>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            Optional: Upload a photo of the seedling (PNG, JPG, or JPEG)
+                                            Optional: Upload a new photo of the seedling
                                         </p>
                                     </div>
                                 </div>
@@ -223,21 +214,7 @@ const AddSeedlings = () => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Field>
-                                    <FieldLabel htmlFor="batch_id">Batch ID</FieldLabel>
-                                    <InputGroup>
-                                        <InputGroupInput
-                                            id="batch_id"
-                                            type="text"
-                                            placeholder="BAT-001"
-                                            value={formData.batch_id}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                        <InputGroupAddon><Sprout /></InputGroupAddon>
-                                    </InputGroup>
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="seedling_type">Various of Seedling</FieldLabel>
+                                    <FieldLabel htmlFor="seedling_type">Seedling Type</FieldLabel>
                                     <InputGroup>
                                         <InputGroupInput
                                             id="seedling_type"
@@ -250,20 +227,20 @@ const AddSeedlings = () => {
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
                                     </InputGroup>
                                 </Field>
-                            </div>
 
-                            <Field>
-                                <FieldLabel htmlFor="classification">Classification</FieldLabel>
-                                <Select value={formData.classification} onValueChange={(value) => handleSelectChange('classification', value)} required>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select classification" />
-                                    </SelectTrigger>
-                                    <SelectContent position="popper">
-                                        <SelectItem value="Crafted">Crafted</SelectItem>
-                                        <SelectItem value="Seedling">Seedling</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="classification">Classification</FieldLabel>
+                                    <Select value={formData.classification} onValueChange={(value) => handleSelectChange('classification', value)} required>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select classification" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="Crafted">Crafted</SelectItem>
+                                            <SelectItem value="Seedling">Seedling</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Field>
@@ -279,9 +256,7 @@ const AddSeedlings = () => {
                                                     !dateSown && "text-muted-foreground"
                                                 )}
                                             >
-                                                {dateSown
-                                                    ? format(dateSown, "PPP")
-                                                    : "Pick a date"}
+                                                {dateSown ? format(dateSown, "PPP") : "Pick a date"}
                                                 <CalendarIcon className="ml-2 h-4 w-4" />
                                             </Button>
                                         </PopoverTrigger>
@@ -309,9 +284,7 @@ const AddSeedlings = () => {
                                                     !expectedReadyDate && "text-muted-foreground"
                                                 )}
                                             >
-                                                {expectedReadyDate
-                                                    ? format(expectedReadyDate, "PPP")
-                                                    : "Pick a date"}
+                                                {expectedReadyDate ? format(expectedReadyDate, "PPP") : "Pick a date"}
                                                 <CalendarIcon className="ml-2 h-4 w-4" />
                                             </Button>
                                         </PopoverTrigger>
@@ -327,67 +300,32 @@ const AddSeedlings = () => {
                                 </Field>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Field>
-                                    <FieldLabel htmlFor="quantity_sown">Quantity Sown</FieldLabel>
-                                    <InputGroup>
-                                        <InputGroupInput
-                                            id="quantity_sown"
-                                            type="number"
-                                            placeholder="800"
-                                            value={formData.quantity_sown}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                        <InputGroupAddon><Sprout /></InputGroupAddon>
-                                    </InputGroup>
-                                </Field>
-                                <Field>
-                                    <FieldLabel htmlFor="current_quantity">Current Quantity</FieldLabel>
-                                    <InputGroup>
-                                        <InputGroupInput
-                                            id="current_quantity"
-                                            type="number"
-                                            placeholder="750"
-                                            value={formData.current_quantity}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                        <InputGroupAddon><Sprout /></InputGroupAddon>
-                                    </InputGroup>
-                                </Field>
-                            </div>
+                            <Field>
+                                <FieldLabel htmlFor="quantity_sown">Quantity Sown</FieldLabel>
+                                <div className="px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground">
+                                    {production.quantity_sown?.toLocaleString()} (Cannot be changed)
+                                </div>
+                            </Field>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Field>
-                                    <FieldLabel htmlFor="stage">Stage</FieldLabel>
-                                    <Select value={formData.stage} onValueChange={(value) => handleSelectChange('stage', value)} required>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Production stage" />
-                                        </SelectTrigger>
-                                        <SelectContent position="popper">
-                                            <SelectItem value="Germination">Germination</SelectItem>
-                                            <SelectItem value="Seedling">Seedling</SelectItem>
-                                            <SelectItem value="Hardening">Hardening</SelectItem>
-                                            <SelectItem value="Ready">Ready</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </Field>
+                            <Field>
+                                <FieldLabel htmlFor="location">Location</FieldLabel>
+                                <InputGroup>
+                                    <InputGroupInput
+                                        id="location"
+                                        type="text"
+                                        placeholder="Greenhouse A"
+                                        value={formData.location}
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                    <InputGroupAddon><Sprout /></InputGroupAddon>
+                                </InputGroup>
+                            </Field>
 
-                                <Field>
-                                    <FieldLabel htmlFor="location">Location</FieldLabel>
-                                    <InputGroup>
-                                        <InputGroupInput
-                                            id="location"
-                                            type="text"
-                                            placeholder="Greenhouse A"
-                                            value={formData.location}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                        <InputGroupAddon><Sprout /></InputGroupAddon>
-                                    </InputGroup>
-                                </Field>
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                                <p className="text-xs text-blue-800">
+                                    <strong>Note:</strong> Use "Update Stage" to change the production stage or current quantity.
+                                </p>
                             </div>
                         </FieldGroup>
                     </div>
@@ -395,12 +333,12 @@ const AddSeedlings = () => {
                     <DialogFooter className="px-6 py-4">
                         <DialogClose asChild>
                             <Button type="button" variant="outline" disabled={isSubmitting}>
-                                Close
+                                Cancel
                             </Button>
                         </DialogClose>
                         <Button type="submit" className="bg-[#016146]" disabled={isSubmitting}>
-                            <CirclePlus />
-                            {isSubmitting ? 'Adding...' : 'Add Seedling'}
+                            <Pencil className="mr-1 h-4 w-4" />
+                            {isSubmitting ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -409,4 +347,4 @@ const AddSeedlings = () => {
     );
 };
 
-export default AddSeedlings;
+export default EditProduction;

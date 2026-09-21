@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -32,60 +32,91 @@ import {
 import {
     Trash,
     Search,
-    Ghost
+    Ghost,
+    Loader2
 } from "lucide-react";
 import AddStaff from "./AddStaff";
-
-const staff = [
-    {
-        id: "STF-001",
-        firstName: "Juan",
-        lastName: "Dela Cruz",
-        Position: "Green Valley Cooperative",
-        address: "San Jorge, Samar",
-        email: "juan.delacruz@example.com",
-        contactNumber: "0917 123 4567",
-        status: "Active",
-    },
-    {
-        id: "STF-002",
-        firstName: "Maria",
-        lastName: "Santos",
-        Position: "San Jorge Farmers Association",
-        address: "San Jorge, Samar",
-        email: "maria.santos@example.com",
-        contactNumber: "0918 234 5678",
-        status: "Active",
-    },
-];
+import EditStaff from "./EditStaff";
+import staffService from "@/services/staffService";
+import { toast } from "sonner";
 
 const StaffTable = () => {
+    const [staff, setStaff] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
+    // Fetch staff from API
+    useEffect(() => {
+        fetchStaff();
+    }, []);
+
+    const fetchStaff = async () => {
+        try {
+            setLoading(true);
+            const response = await staffService.getAllStaff();
+            if (response.success) {
+                setStaff(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching staff:", error);
+            toast.error("Failed to load staff", {
+                description: "Please make sure the backend server is running"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStaffAdded = () => {
+        fetchStaff(); // Refresh the list when a new staff is added
+    };
+
+    const handleDeleteStaff = async (id, staffName) => {
+        if (!confirm(`Are you sure you want to delete ${staffName}?`)) {
+            return;
+        }
+
+        try {
+            const response = await staffService.deleteStaff(id);
+            if (response.success) {
+                toast.success("Staff deleted successfully!", {
+                    description: `${staffName} has been removed from the system.`
+                });
+                fetchStaff(); // Refresh the list
+            }
+        } catch (error) {
+            console.error("Error deleting staff:", error);
+            toast.error("Failed to delete staff", {
+                description: error.response?.data?.message || "Please try again"
+            });
+        }
+    };
+
     const filteredStaff = useMemo(() => {
         return staff.filter((employee) => {
             const searchTerm = search.toLowerCase().trim();
+            const fullName = `${employee.first_name} ${employee.middle_name || ''} ${employee.last_name}`.toLowerCase();
+            const fullAddress = `${employee.barangay}, ${employee.municipality}, ${employee.province}`.toLowerCase();
+            
             const matchesSearch =
-                employee.id.toLowerCase().includes(searchTerm) ||
-                employee.firstName.toLowerCase().includes(searchTerm) ||
-                employee.lastName.toLowerCase().includes(searchTerm) ||
-                `${employee.firstName} ${employee.lastName}`
-                    .toLowerCase()
-                    .includes(searchTerm) ||
-                employee.Position.toLowerCase().includes(searchTerm) ||
-                employee.address.toLowerCase().includes(searchTerm) ||
+                employee.staff_id.toLowerCase().includes(searchTerm) ||
+                employee.first_name.toLowerCase().includes(searchTerm) ||
+                employee.last_name.toLowerCase().includes(searchTerm) ||
+                fullName.includes(searchTerm) ||
+                employee.position.toLowerCase().includes(searchTerm) ||
+                fullAddress.includes(searchTerm) ||
                 employee.email.toLowerCase().includes(searchTerm) ||
-                employee.contactNumber.toLowerCase().includes(searchTerm) ||
-                employee.status.toLowerCase().includes(searchTerm);
-            const matchesStatus =
-                statusFilter === "all" ||
-                employee.status.toLowerCase() === statusFilter;
+                employee.contact_number.includes(searchTerm);
+            
+            // Status filter - for now all staff are active
+            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            
             return matchesSearch && matchesStatus;
         });
-    }, [search, statusFilter]);
+    }, [staff, search, statusFilter]);
 
     const totalPages = Math.ceil(
         filteredStaff.length / itemsPerPage
@@ -160,7 +191,7 @@ const StaffTable = () => {
                     </SelectContent>
                 </Select>
                 </div>
-                <AddStaff />
+                <AddStaff onStaffAdded={handleStaffAdded} />
             </div>
 
             <div className="overflow-hidden rounded-md border">
@@ -178,30 +209,60 @@ const StaffTable = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {paginatedStaff.length > 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">Loading staff...</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedStaff.length > 0 ? (
                             paginatedStaff.map((employee) => (
                                 <TableRow key={employee.id}>
-                                    <TableCell>{employee.id}</TableCell>
-                                    <TableCell>{employee.firstName}{" "}{employee.lastName}</TableCell>
-                                    <TableCell>{employee.Position}</TableCell>
-                                    <TableCell>{employee.address}</TableCell>
+                                    <TableCell>{employee.staff_id}</TableCell>
+                                    <TableCell>
+                                        {employee.first_name} {employee.middle_name && `${employee.middle_name} `}{employee.last_name}
+                                    </TableCell>
+                                    <TableCell>{employee.position}</TableCell>
+                                    <TableCell>
+                                        {employee.barangay}, {employee.municipality}, {employee.province}
+                                    </TableCell>
                                     <TableCell>{employee.email}</TableCell>
-                                    <TableCell>{employee.contactNumber}</TableCell>
-                                    <TableCell>{employee.status}</TableCell>
+                                    <TableCell>{employee.contact_number}</TableCell>
+                                    <TableCell>
+                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                                            Active
+                                        </span>
+                                    </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="destructive" size="icon">
-                                            <Trash />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <EditStaff 
+                                                staff={employee} 
+                                                onStaffUpdated={fetchStaff}
+                                            />
+                                            <Button 
+                                                variant="destructive" 
+                                                size="icon"
+                                                onClick={() => handleDeleteStaff(
+                                                    employee.id, 
+                                                    `${employee.first_name} ${employee.last_name}`
+                                                )}
+                                            >
+                                                <Trash />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
-
                         ) : (
-
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center">
-                                    <Ghost className="mx-auto" />
-                                    No staff members found.
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Ghost className="h-8 w-8 text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">No staff members found.</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}

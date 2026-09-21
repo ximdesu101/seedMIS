@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import productionService from "@/services/productionService";
+import inventoryService from "@/services/inventoryService";
 import {
     Table,
     TableBody,
@@ -32,108 +34,86 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
     Search,
     Ellipsis,
-    Eye,
-    Pencil,
-    Archive,
     Sprout,
 } from "lucide-react";
 import AddSeedlings from "./AddSeedlings";
-
-const productionBatches = [
-    {
-        id: "BAT-001",
-        seedlingType: "Mahogany",
-        scientificName: "Swietenia macrophylla",
-        dateSown: "June 10, 2026",
-        expectedReady: "September 15, 2026",
-        quantitySown: 2500,
-        currentQuantity: 2380,
-        stage: "Hardening",
-        location: "Hardening Area A",
-        assignedStaff: "Juan Dela Cruz",
-    },
-    {
-        id: "BAT-002",
-        seedlingType: "Gmelina",
-        scientificName: "Gmelina arborea",
-        dateSown: "July 5, 2026",
-        expectedReady: "October 10, 2026",
-        quantitySown: 2000,
-        currentQuantity: 1925,
-        stage: "Seedling",
-        location: "Nursery Area B",
-        assignedStaff: "Maria Santos",
-    },
-    {
-        id: "BAT-003",
-        seedlingType: "Narra",
-        scientificName: "Pterocarpus indicus",
-        dateSown: "August 1, 2026",
-        expectedReady: "November 15, 2026",
-        quantitySown: 1500,
-        currentQuantity: 1420,
-        stage: "Germination",
-        location: "Germination Area A",
-        assignedStaff: "Pedro Reyes",
-    },
-    {
-        id: "BAT-004",
-        seedlingType: "Mangium",
-        scientificName: "Acacia mangium",
-        dateSown: "May 20, 2026",
-        expectedReady: "August 25, 2026",
-        quantitySown: 1200,
-        currentQuantity: 1120,
-        stage: "Ready",
-        location: "Ready Stock Area",
-        assignedStaff: "Ana Garcia",
-    },
-    {
-        id: "BAT-005",
-        seedlingType: "Tindalo",
-        scientificName: "Afzelia rhomboidea",
-        dateSown: "July 20, 2026",
-        expectedReady: "October 30, 2026",
-        quantitySown: 1000,
-        currentQuantity: 940,
-        stage: "Seedling",
-        location: "Nursery Area C",
-        assignedStaff: "Jose Ramos",
-    },
-];
+import UpdateStage from "./UpdateStage";
+import EditProduction from "./EditProduction";
+import TransferToInventory from "./TransferToInventory";
+import ViewAllHistory from "./ViewAllHistory";
 
 const ProductionTable = () => {
     const [search, setSearch] = useState("");
     const [stageFilter, setStageFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [productionBatches, setProductionBatches] = useState([]);
+    const [inventories, setInventories] = useState([]);
+    const [loading, setLoading] = useState(true);
     const itemsPerPage = 5;
+
+    // Fetch production batches and inventories from API
+    useEffect(() => {
+        fetchProductions();
+        fetchInventories();
+    }, []);
+
+    const fetchProductions = async () => {
+        try {
+            setLoading(true);
+            const response = await productionService.getAllProductions();
+            if (response.success) {
+                setProductionBatches(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching production batches:', error);
+            alert('Failed to load production batches');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchInventories = async () => {
+        try {
+            const response = await inventoryService.getAllInventories();
+            if (response.success) {
+                setInventories(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching inventories:', error);
+        }
+    };
+
+    // Check if seedling already exists in inventory
+    const checkIfSeedlingExists = (seedlingType, classification) => {
+        return inventories.some(
+            inv => inv.seedling_type === seedlingType && inv.classification === classification
+        );
+    };
 
     const filteredBatches = useMemo(() => {
         return productionBatches.filter((batch) => {
             const searchTerm = search.toLowerCase().trim();
 
             const matchesSearch =
-                batch.id.toLowerCase().includes(searchTerm) ||
-                batch.seedlingType.toLowerCase().includes(searchTerm) ||
-                batch.scientificName.toLowerCase().includes(searchTerm) ||
-                batch.location.toLowerCase().includes(searchTerm) ||
-                batch.assignedStaff.toLowerCase().includes(searchTerm) ||
-                batch.stage.toLowerCase().includes(searchTerm);
+                batch.batch_id?.toLowerCase().includes(searchTerm) ||
+                batch.seedling_type?.toLowerCase().includes(searchTerm) ||
+                batch.classification?.toLowerCase().includes(searchTerm) ||
+                batch.location?.toLowerCase().includes(searchTerm) ||
+                batch.assigned_staff?.toLowerCase().includes(searchTerm) ||
+                batch.stage?.toLowerCase().includes(searchTerm);
 
             const matchesStage =
                 stageFilter === "all" ||
-                batch.stage.toLowerCase() === stageFilter;
+                batch.stage?.toLowerCase() === stageFilter;
 
             return matchesSearch && matchesStage;
         });
-    }, [search, stageFilter]);
+    }, [search, stageFilter, productionBatches]);
 
     const totalPages = Math.ceil(
         filteredBatches.length / itemsPerPage
@@ -178,8 +158,8 @@ const ProductionTable = () => {
 
     return (
         <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-                <div className="flex gap-4">
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
                     <div className="w-80">
                         <InputGroup>
                             <InputGroupInput
@@ -225,6 +205,8 @@ const ProductionTable = () => {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    <ViewAllHistory />
                 </div>
 
                 <AddSeedlings />
@@ -234,68 +216,99 @@ const ProductionTable = () => {
                 <Table className="p-0">
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Batch ID</TableHead>
-                            <TableHead>Seedling Type</TableHead>
-                            <TableHead>Date Sown</TableHead>
-                            <TableHead>Expected Ready</TableHead>
-                            <TableHead>Quantity Sown</TableHead>
-                            <TableHead>Current Quantity</TableHead>
-                            <TableHead>Survivability</TableHead>
-                            <TableHead>Stage</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead className="text-right">
+                            <TableHead className="w-[350px] min-w-[350px]">Seedling Information</TableHead>
+                            <TableHead className="whitespace-nowrap">Date Sown</TableHead>
+                            <TableHead className="whitespace-nowrap">Expected Ready</TableHead>
+                            <TableHead className="whitespace-nowrap">Quantity Sown</TableHead>
+                            <TableHead className="whitespace-nowrap">Current Quantity</TableHead>
+                            <TableHead className="whitespace-nowrap">Survivability</TableHead>
+                            <TableHead className="whitespace-nowrap">Stage</TableHead>
+                            <TableHead className="whitespace-nowrap">Location</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">
                                 Action
                             </TableHead>
                         </TableRow>
                     </TableHeader>
 
                     <TableBody>
-                        {paginatedBatches.length > 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={9} className="text-center">
+                                    Loading...
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedBatches.length > 0 ? (
                             paginatedBatches.map((batch) => (
                                 <TableRow key={batch.id}>
-                                    <TableCell>
-                                        {batch.id}
+                                    <TableCell className="w-[350px] min-w-[350px]">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0">
+                                                {batch.image_url ? (
+                                                    <img
+                                                        src={`http://localhost:8000/${batch.image_url}`}
+                                                        alt={batch.seedling_type}
+                                                        className="w-20 h-24 object-cover rounded-md border"
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.style.display = 'none';
+                                                            e.target.parentElement.innerHTML = '<div class="w-20 h-24 flex items-center justify-center bg-gray-100 rounded-md border"><span class="text-gray-400 text-xs">Photo</span></div>';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-20 h-24 flex items-center justify-center bg-gray-100 rounded-md border">
+                                                        <span className="text-gray-400 text-xs">Photo</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0 max-w-[240px]">
+                                                <h3 className="font-semibold text-sm text-primary mb-1 truncate">
+                                                    {batch.seedling_type}
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground mb-1 truncate">
+                                                    Classification: {batch.classification || 'N/A'}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    ID: {batch.batch_id}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TableCell>
 
-                                    <TableCell>
-                                        {batch.seedlingType}
+                                    <TableCell className="whitespace-nowrap">
+                                        {batch.date_sown ? new Date(batch.date_sown).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
                                     </TableCell>
 
-                                    <TableCell>
-                                        {batch.dateSown}
+                                    <TableCell className="whitespace-nowrap">
+                                        {batch.expected_ready ? new Date(batch.expected_ready).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
                                     </TableCell>
 
-                                    <TableCell>
-                                        {batch.expectedReady}
+                                    <TableCell className="whitespace-nowrap">
+                                        {batch.quantity_sown?.toLocaleString()}
                                     </TableCell>
 
-                                    <TableCell>
-                                        {batch.quantitySown.toLocaleString()}
+                                    <TableCell className="whitespace-nowrap">
+                                        {batch.current_quantity?.toLocaleString()}
                                     </TableCell>
 
-                                    <TableCell>
-                                        {batch.currentQuantity.toLocaleString()}
-                                    </TableCell>
-
-                                    <TableCell>
-                                        {batch.quantitySown > 0
+                                    <TableCell className="whitespace-nowrap">
+                                        {batch.quantity_sown > 0
                                             ? `${(
-                                                (batch.currentQuantity /
-                                                    batch.quantitySown) *
+                                                (batch.current_quantity /
+                                                    batch.quantity_sown) *
                                                 100
                                             ).toFixed(1)}%`
                                             : "0.0%"}
                                     </TableCell>
 
-                                    <TableCell>
+                                    <TableCell className="whitespace-nowrap">
                                         {batch.stage}
                                     </TableCell>
 
-                                    <TableCell>
+                                    <TableCell className="whitespace-nowrap">
                                         {batch.location}
                                     </TableCell>
 
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
@@ -310,27 +323,18 @@ const ProductionTable = () => {
                                                 align="end"
                                                 className="w-full"
                                             >
-                                                <DropdownMenuItem>
-                                                    <Eye />
-                                                    View Production Details
-                                                </DropdownMenuItem>
-
-                                                <DropdownMenuItem>
-                                                    <Pencil />
-                                                    Edit Production
-                                                </DropdownMenuItem>
-
-                                                <DropdownMenuItem>
-                                                    <Sprout />
-                                                    Update Stage
-                                                </DropdownMenuItem>
-
-                                                <DropdownMenuSeparator />
-
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                                    <Archive />
-                                                    Archive Batch
-                                                </DropdownMenuItem>
+                                                {batch.stage === 'Ready' ? (
+                                                    <TransferToInventory 
+                                                        production={batch} 
+                                                        onUpdate={fetchProductions}
+                                                        needsPriceInput={!checkIfSeedlingExists(batch.seedling_type, batch.classification)}
+                                                    />
+                                                ) : (
+                                                    <>
+                                                        <UpdateStage production={batch} onUpdate={fetchProductions} />
+                                                        <EditProduction production={batch} onUpdate={fetchProductions} />
+                                                    </>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -339,7 +343,7 @@ const ProductionTable = () => {
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={10}
+                                    colSpan={9}
                                     className="text-center"
                                 >
                                     <Sprout className="mx-auto" />
