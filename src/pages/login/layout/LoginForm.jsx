@@ -53,9 +53,13 @@ const LoginForm = () => {
         try {
             const response = await authService.login(formData);
             
+            console.log('Login response:', response); // Debug log
+            
             if (response.success) {
-                localStorage.setItem('user', JSON.stringify(response.data));
+                // Store the complete user data including user_type
+                localStorage.setItem('user', JSON.stringify(response.data.user));
                 localStorage.setItem('userType', response.data.user_type);
+                localStorage.setItem('userData', JSON.stringify(response.data));
                 
                 toast.success("Login successful!", {
                     description: `Welcome, ${response.data.user.name}!`
