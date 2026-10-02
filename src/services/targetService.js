@@ -50,6 +50,16 @@ const targetService = {
             throw error;
         }
     },
+
+    // Get monthly target vs actual distribution
+    getMonthlyTargetVsActual: async () => {
+        try {
+            const response = await api.get('/targets/monthly-target-vs-actual');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
 };
 
 export default targetService;
