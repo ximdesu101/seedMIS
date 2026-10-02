@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import dashboardService from "@/services/dashboardService";
 
 import {
@@ -21,17 +21,17 @@ import {
 } from "@/components/ui/chart";
 
 const chartConfig = {
-    sown: {
-        label: "Sown",
-        color: "var(--chart-1)",
+    actual: {
+        label: "Actual Production",
+        color: "var(--chart-2)",
     },
-    ready: {
-        label: "Ready",
-        color: "var(--chart-4)",
+    target: {
+        label: "Target",
+        color: "var(--chart-1)",
     },
 };
 
-const ProductionReadyChart = () => {
+const ActualVsTargetChart = () => {
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -44,11 +44,11 @@ const ProductionReadyChart = () => {
             setLoading(true);
             const response = await dashboardService.getDashboardData();
 
-            if (response.success && response.data.production_chart) {
-                setChartData(response.data.production_chart);
+            if (response.success && response.data.actual_vs_target) {
+                setChartData(response.data.actual_vs_target);
             }
         } catch (error) {
-            console.error('Error fetching production chart data:', error);
+            console.error('Error fetching chart data:', error);
         } finally {
             setLoading(false);
         }
@@ -58,7 +58,7 @@ const ProductionReadyChart = () => {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Seedling Production vs Ready</CardTitle>
+                    <CardTitle>Actual vs Target Production</CardTitle>
                     <CardDescription>Loading...</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[325px] flex items-center justify-center">
@@ -72,11 +72,13 @@ const ProductionReadyChart = () => {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Seedling Production vs Ready</CardTitle>
+                    <CardTitle>Actual vs Target Production</CardTitle>
                     <CardDescription>No data available</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[325px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No production data for current year</p>
+                    <p className="text-muted-foreground">
+                        Set targets in Settings to see comparison
+                    </p>
                 </CardContent>
             </Card>
         );
@@ -85,9 +87,9 @@ const ProductionReadyChart = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Seedling Production vs Ready</CardTitle>
+                <CardTitle>Actual vs Target Production</CardTitle>
                 <CardDescription>
-                    Monthly sown and ready seedlings for {new Date().getFullYear()}
+                    Compare actual production with targets
                 </CardDescription>
             </CardHeader>
 
@@ -97,11 +99,19 @@ const ProductionReadyChart = () => {
                         <CartesianGrid vertical={false} />
 
                         <XAxis
-                            dataKey="month"
+                            dataKey="seedling"
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            tickFormatter={(value) => value.slice(0, 3)}
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                        />
+
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => value.toLocaleString()}
                         />
 
                         <ChartTooltip
@@ -110,22 +120,23 @@ const ProductionReadyChart = () => {
                         />
                         
                         <Bar
-                            dataKey="sown"
-                            fill="var(--color-sown)"
+                            dataKey="actual"
+                            fill="var(--color-actual)"
                             radius={4}
                         />
 
                         <Bar
-                            dataKey="ready"
-                            fill="var(--color-ready)"
+                            dataKey="target"
+                            fill="var(--color-target)"
                             radius={4}
                         />
+                        
                         <ChartLegend content={<ChartLegendContent />} />
                     </BarChart>
                 </ChartContainer>
             </CardContent>
         </Card>
     );
-}
+};
 
-export default ProductionReadyChart
+export default ActualVsTargetChart;
