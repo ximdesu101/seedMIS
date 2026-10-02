@@ -32,7 +32,7 @@ const chartConfig = {
         color: "var(--chart-2)",
     },
     quantity: {
-        label: "Total Quantity",
+        label: "Monthly Sales",
         color: "var(--chart-3)",
     },
 };
@@ -75,18 +75,13 @@ const CardMetrics = () => {
             if (response.success) {
                 const data = response.data;
                 
-                // Get all released requests for quantity calculation
+                // Get all released requests for monthly sales calculation
                 const requestsResponse = await requestService.getAllRequests();
-                let totalQuantity = 0;
                 let monthlySales = 0;
                 
                 if (requestsResponse.success) {
                     const releasedRequests = requestsResponse.data.filter(
                         req => req.status === 'Released'
-                    );
-                    totalQuantity = releasedRequests.reduce(
-                        (sum, req) => sum + (req.quantity || 0), 
-                        0
                     );
 
                     // Calculate monthly sales (current month only)
@@ -103,15 +98,17 @@ const CardMetrics = () => {
                 // Get monthly target
                 const targetResponse = await targetService.getProgress();
                 let monthlyTarget = 0;
+                let monthlyDistributed = 0;
                 if (targetResponse.success && targetResponse.data.monthly_distribution) {
                     monthlyTarget = targetResponse.data.monthly_distribution.target;
+                    monthlyDistributed = targetResponse.data.monthly_distribution.current;
                 }
 
                 setMetrics([
                     {
                         title: "Monthly Target",
-                        value: monthlyTarget,
-                        subtitle: "Distribution Goal",
+                        value: monthlyDistributed,
+                        subtitle: "of " + monthlyTarget.toLocaleString() + " target",
                         icon: Target,
                         iconClass: "text-blue-600",
                         chartKey: "target",
@@ -125,13 +122,12 @@ const CardMetrics = () => {
                         chartKey: "distribution",
                     },
                     {
-                        title: "Total Quantity",
-                        value: totalQuantity,
-                        subtitle: "Seedlings Distributed",
+                        title: "Monthly Total Sales",
+                        value: monthlySales,
+                        subtitle: "Monthly Revenue",
                         icon: Weight,
                         iconClass: "text-amber-600",
                         chartKey: "quantity",
-                        monthlySales: monthlySales,
                     },
                 ]);
             }
@@ -169,12 +165,6 @@ const CardMetrics = () => {
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         {subtitle}
                                     </p>
-
-                                    {chartKey === "quantity" && (
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            ₱{metrics[2]?.monthlySales?.toLocaleString() || 0} monthly sales
-                                        </p>
-                                    )}
                                 </div>
 
                                 <div className="h-[70px] w-[150px]">
