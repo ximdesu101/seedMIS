@@ -56,9 +56,9 @@ const CardMetrics = () => {
             chartKey: "distribution",
         },
         {
-            title: "Total Quantity",
+            title: "Monthly Total Sales",
             value: 0,
-            subtitle: "Seedlings Distributed",
+            subtitle: "Monthly Revenue",
             icon: Weight,
             iconClass: "text-amber-600",
             chartKey: "quantity",
@@ -71,66 +71,44 @@ const CardMetrics = () => {
 
     const fetchMetrics = async () => {
         try {
-            const response = await requestService.getMetrics();
-            if (response.success) {
-                const data = response.data;
-                
-                // Get all released requests for monthly sales calculation
-                const requestsResponse = await requestService.getAllRequests();
-                let monthlySales = 0;
-                
-                if (requestsResponse.success) {
-                    const releasedRequests = requestsResponse.data.filter(
-                        req => req.status === 'Released'
-                    );
+            const [salesResponse, targetResponse, metricsResponse] = await Promise.all([
+                requestService.getMonthlySales(),
+                targetService.getMonthlyTargetVsActual(),
+                requestService.getMetrics(),
+            ]);
 
-                    // Calculate monthly sales (current month only)
-                    const currentMonth = new Date().getMonth();
-                    const currentYear = new Date().getFullYear();
-                    monthlySales = releasedRequests
-                        .filter(req => {
-                            const reqDate = new Date(req.updated_at);
-                            return reqDate.getMonth() === currentMonth && reqDate.getFullYear() === currentYear;
-                        })
-                        .reduce((sum, req) => sum + (req.total_price || 0), 0);
-                }
+            const monthlySales = salesResponse.success ? (salesResponse.data.monthly_sales || 0) : 0;
+            const monthlyTarget = targetResponse.success ? (targetResponse.data.target || 0) : 0;
+            const monthlyDistributed = targetResponse.success ? (targetResponse.data.actual || 0) : 0;
+            const totalReleased = metricsResponse.success ? (metricsResponse.data.released || 0) : 0;
 
-                // Get monthly target
-                const targetResponse = await targetService.getProgress();
-                let monthlyTarget = 0;
-                let monthlyDistributed = 0;
-                if (targetResponse.success && targetResponse.data.monthly_distribution) {
-                    monthlyTarget = targetResponse.data.monthly_distribution.target;
-                    monthlyDistributed = targetResponse.data.monthly_distribution.current;
-                }
-
-                setMetrics([
-                    {
-                        title: "Monthly Target",
-                        value: monthlyDistributed,
-                        subtitle: "of " + monthlyTarget.toLocaleString() + " target",
-                        icon: Target,
-                        iconClass: "text-blue-600",
-                        chartKey: "target",
-                    },
-                    {
-                        title: "Total Distribution",
-                        value: data.released || 0,
-                        subtitle: "Released Seedlings",
-                        icon: Truck,
-                        iconClass: "text-green-600",
-                        chartKey: "distribution",
-                    },
-                    {
-                        title: "Monthly Total Sales",
-                        value: monthlySales,
-                        subtitle: "Monthly Revenue",
-                        icon: Weight,
-                        iconClass: "text-amber-600",
-                        chartKey: "quantity",
-                    },
-                ]);
-            }
+            setMetrics([
+                {
+                    title: "Monthly Target",
+                    value: monthlyDistributed,
+                    subtitle: `of ${monthlyTarget.toLocaleString()} seedlings target`,
+                    icon: Target,
+                    iconClass: "text-blue-600",
+                    chartKey: "target",
+                },
+                {
+                    title: "Total Distribution",
+                    value: totalReleased,
+                    subtitle: "Released Seedlings",
+                    icon: Truck,
+                    iconClass: "text-green-600",
+                    chartKey: "distribution",
+                },
+                {
+                    title: "Monthly Total Sales",
+                    value: monthlySales,
+                    subtitle: "Monthly Revenue",
+                    icon: Weight,
+                    iconClass: "text-amber-600",
+                    chartKey: "quantity",
+                    isPrice: true,
+                },
+            ]);
         } catch (error) {
             console.error('Error fetching metrics:', error);
         }
@@ -145,6 +123,7 @@ const CardMetrics = () => {
                     icon: Icon,
                     iconClass,
                     chartKey,
+                    isPrice,
                 }) => (
                     <Card key={title}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -159,7 +138,10 @@ const CardMetrics = () => {
                             <div className="flex items-center justify-between gap-4">
                                 <div className="shrink-0">
                                     <div className="flex items-center text-3xl font-bold">
-                                        {value.toLocaleString()}
+                                        {isPrice 
+                                            ? `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                            : value.toLocaleString()
+                                        }
                                     </div>
 
                                     <p className="mt-1 text-xs text-muted-foreground">
