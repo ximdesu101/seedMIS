@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import dashboardService from "@/services/dashboardService";
 
 import {
     Card,
@@ -18,21 +20,6 @@ import {
     ChartLegendContent,
 } from "@/components/ui/chart";
 
-const chartData = [
-    { month: "January", sown: 186, ready: 80 },
-    { month: "February", sown: 305, ready: 200 },
-    { month: "March", sown: 237, ready: 120 },
-    { month: "April", sown: 273, ready: 190 },
-    { month: "May", sown: 209, ready: 130 },
-    { month: "June", sown: 214, ready: 140 },
-    { month: "July", sown: 286, ready: 180 },
-    { month: "August", sown: 325, ready: 220 },
-    { month: "September", sown: 298, ready: 210 },
-    { month: "October", sown: 352, ready: 245 },
-    { month: "November", sown: 315, ready: 230 },
-    { month: "December", sown: 380, ready: 270 },
-];
-
 const chartConfig = {
     sown: {
         label: "Sown",
@@ -45,12 +32,62 @@ const chartConfig = {
 };
 
 const ProductionReadyChart = () => {
+    const [chartData, setChartData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const response = await dashboardService.getDashboardData();
+
+            if (response.success && response.data.production_chart) {
+                setChartData(response.data.production_chart);
+            }
+        } catch (error) {
+            console.error('Error fetching production chart data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Seedling Production vs Ready</CardTitle>
+                    <CardDescription>Loading...</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[325px] flex items-center justify-center">
+                    <p className="text-muted-foreground">Loading chart data...</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (chartData.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Seedling Production vs Ready</CardTitle>
+                    <CardDescription>No data available</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[325px] flex items-center justify-center">
+                    <p className="text-muted-foreground">No production data for current year</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Seedling Production vs Ready</CardTitle>
                 <CardDescription>
-                    Monthly sown and ready seedlings for 2026
+                    Monthly sown and ready seedlings for {new Date().getFullYear()}
                 </CardDescription>
             </CardHeader>
 

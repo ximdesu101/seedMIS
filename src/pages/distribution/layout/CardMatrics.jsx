@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import requestService from "@/services/requestService";
+import targetService from "@/services/targetService";
 import {
     Card,
     CardHeader,
@@ -14,64 +17,108 @@ import {
 import { Area, AreaChart, XAxis } from "recharts";
 
 import {
-    BanknoteArrowUp,
+    Target,
     Weight,
     Truck,
-    PhilippinePeso,
 } from "lucide-react";
 
-const metrics = [
-    {
-        title: "Total Income",
-        value: 2001,
-        subtitle: "September 2026",
-        icon: BanknoteArrowUp,
-        valueIcon: PhilippinePeso,
-        iconClass: "text-blue-600",
-        chartKey: "income",
-    },
-    {
-        title: "Total Distribution",
-        value: 1240,
-        subtitle: "September 2026",
-        icon: Truck,
-        iconClass: "text-green-600",
-        chartKey: "distribution",
-    },
-    {
-        title: "Monthly Sales",
-        value: 58,
-        subtitle: "September 2026",
-        icon: Weight,
-        valueIcon: PhilippinePeso,
-        iconClass: "text-amber-600",
-        chartKey: "Monthly",
-    },
-];
-
-const chartData = [
-    { week: "Week 1", income: 42, distribution: 1126, Monthly: 41 },
-    { week: "Week 2", income: 80, distribution: 1154, Monthly: 44 },
-    { week: "Week 3", income: 150, distribution: 189, Monthly: 51 },
-    { week: "Week 4", income: 250, distribution: 1217, Monthly: 5 },
-];
-
 const chartConfig = {
-    income: {
-        label: "Total Income",
+    target: {
+        label: "Monthly Target",
         color: "var(--chart-1)",
     },
     distribution: {
         label: "Total Distribution",
         color: "var(--chart-2)",
     },
-    Monthly: {
+    quantity: {
         label: "Monthly Sales",
         color: "var(--chart-3)",
     },
 };
 
-const CardMetrics = () => {
+const CardMetrics = ({ dateRange }) => {
+    const [metrics, setMetrics] = useState([
+        {
+            title: "Monthly Target",
+            value: 0,
+            subtitle: "Distribution Goal",
+            icon: Target,
+            iconClass: "text-blue-600",
+            chartKey: "target",
+        },
+        {
+            title: "Total Distribution",
+            value: 0,
+            subtitle: "Released Seedlings",
+            icon: Truck,
+            iconClass: "text-green-600",
+            chartKey: "distribution",
+        },
+        {
+            title: "Monthly Total Sales",
+            value: 0,
+            subtitle: "Monthly Revenue",
+            icon: Weight,
+            iconClass: "text-amber-600",
+            chartKey: "quantity",
+        },
+    ]);
+
+    useEffect(() => {
+        fetchMetrics();
+    }, [dateRange]);
+
+    const fetchMetrics = async () => {
+        try {
+            const [salesResponse, targetResponse, metricsResponse] = await Promise.all([
+                requestService.getMonthlySales(dateRange),
+                targetService.getMonthlyTargetVsActual(dateRange),
+                requestService.getMetrics(),
+            ]);
+
+            console.log('Sales Response:', salesResponse);
+            console.log('Target Response:', targetResponse);
+            console.log('Metrics Response:', metricsResponse);
+
+            const monthlySales = salesResponse.success ? (salesResponse.data.monthly_sales || 0) : 0;
+            const monthlyTarget = targetResponse.success ? (targetResponse.data.target || 0) : 0;
+            const monthlyDistributed = targetResponse.success ? (targetResponse.data.actual || 0) : 0;
+            
+            // Use monthlyDistributed for Total Distribution (actual from date range)
+            const totalReleased = monthlyDistributed;
+
+            setMetrics([
+                {
+                    title: "Monthly Target",
+                    value: monthlyDistributed,
+                    subtitle: `of ${monthlyTarget.toLocaleString()} seedlings target`,
+                    icon: Target,
+                    iconClass: "text-blue-600",
+                    chartKey: "target",
+                },
+                {
+                    title: "Total Distribution",
+                    value: totalReleased,
+                    subtitle: "Released Seedlings",
+                    icon: Truck,
+                    iconClass: "text-green-600",
+                    chartKey: "distribution",
+                },
+                {
+                    title: "Monthly Total Sales",
+                    value: monthlySales,
+                    subtitle: "Monthly Revenue",
+                    icon: Weight,
+                    iconClass: "text-amber-600",
+                    chartKey: "quantity",
+                    isPrice: true,
+                },
+            ]);
+        } catch (error) {
+            console.error('Error fetching metrics:', error);
+        }
+    };
     return (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {metrics.map(
@@ -80,9 +127,9 @@ const CardMetrics = () => {
                     value,
                     subtitle,
                     icon: Icon,
-                    valueIcon: ValueIcon,
                     iconClass,
                     chartKey,
+                    isPrice,
                 }) => (
                     <Card key={title}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,10 +144,10 @@ const CardMetrics = () => {
                             <div className="flex items-center justify-between gap-4">
                                 <div className="shrink-0">
                                     <div className="flex items-center text-3xl font-bold">
-                                        {ValueIcon && (
-                                            <ValueIcon className="mr-1 h-6 w-6" />
-                                        )}
-                                        {value.toLocaleString()}
+                                        {isPrice 
+                                            ? `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                            : value.toLocaleString()
+                                        }
                                     </div>
 
                                     <p className="mt-1 text-xs text-muted-foreground">
@@ -115,7 +162,12 @@ const CardMetrics = () => {
                                     >
                                         <AreaChart
                                             accessibilityLayer
-                                            data={chartData}
+                                            data={[
+                                                { week: "Week 1", [chartKey]: Math.floor(value * 0.6) },
+                                                { week: "Week 2", [chartKey]: Math.floor(value * 0.7) },
+                                                { week: "Week 3", [chartKey]: Math.floor(value * 0.85) },
+                                                { week: "Week 4", [chartKey]: value },
+                                            ]}
                                             margin={{
                                                 left: 0,
                                                 right: 0,

@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import requestService from "@/services/requestService";
 import {
     Table,
     TableBody,
@@ -43,89 +45,226 @@ import {
     X,
     PackageCheck,
 } from "lucide-react";
-
-const seedlingRequests = [
-    {
-        requester: "Juan Dela Cruz",
-        organization: "San Jorge Municipal Agriculture Office",
-        seedlingType: "Mahogany",
-        quantity: 500,
-        purpose: "Community Reforestation",
-        requestedDate: "September 2, 2026",
-        status: "Pending",
-    },
-    {
-        requester: "Maria Santos",
-        organization: "San Jorge Elementary School",
-        seedlingType: "Narra",
-        quantity: 200,
-        purpose: "School Greening Program",
-        requestedDate: "September 3, 2026",
-        status: "Approved",
-    },
-    {
-        requester: "Pedro Reyes",
-        organization: "Barangay San Isidro",
-        seedlingType: "Gmelina",
-        quantity: 1000,
-        purpose: "Barangay Reforestation",
-        requestedDate: "September 4, 2026",
-        status: "Released",
-    },
-    {
-        requester: "Ana Garcia",
-        organization: "San Jorge Farmers Association",
-        seedlingType: "Mangium",
-        quantity: 750,
-        purpose: "Farm Boundary Planting",
-        requestedDate: "September 5, 2026",
-        status: "Pending",
-    },
-    {
-        requester: "Jose Ramos",
-        organization: "Green Earth Organization",
-        seedlingType: "Tindalo",
-        quantity: 300,
-        purpose: "Environmental Restoration",
-        requestedDate: "September 6, 2026",
-        status: "Rejected",
-    },
-];
+import { toast } from "sonner";
+import NewRequest from "./NewRequest";
 
 const RequestTable = () => {
+    const navigate = useNavigate();
     const [search, setSearch] = useState("");
-    const [priorityFilter, setPriorityFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
     const itemsPerPage = 5;
 
+    useEffect(() => {
+        fetchRequests();
+    }, []);
+
+    const fetchRequests = async () => {
+        try {
+            setLoading(true);
+            const response = await requestService.getAllRequests();
+            if (response.success) {
+                // Exclude Released status - they should appear in DistributeTable
+                const activeRequests = response.data.filter(
+                    request => request.status !== 'Released'
+                );
+                setRequests(activeRequests);
+            }
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+            alert('Failed to load requests');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handler for when a new request is added
+    const handleRequestAdded = () => {
+        fetchRequests(); // Refresh the list
+    };
+
+    // Handle reject request
+    const handleRejectRequest = (requestId) => {
+        // Find the request to show details in confirmation
+        const request = requests.find(r => r.id === requestId);
+        
+        if (!request) {
+            toast.error('Request not found');
+            return;
+        }
+
+        // Show warning toast with action buttons
+        toast.warning('Reject this request?', {
+            description: `Requester: ${request.requester}\nSeedling: ${request.seedlingType}\nQuantity: ${request.quantity}\n\nThe reserved quantity will be returned to inventory.`,
+            duration: 10000,
+            action: {
+                label: 'Reject Request',
+                onClick: async () => {
+                    try {
+                        // Get user data from localStorage
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        const userType = localStorage.getItem('userType');
+
+                        const response = await requestService.updateRequest(requestId, {
+                            status: 'Rejected',
+                            user_id: user?.id || null,
+                            user_type: userType || null,
+                        });
+
+                        if (response.success) {
+                            toast.success('Request Rejected', {
+                                description: `${request.quantity} ${request.seedlingType} seedlings returned to inventory.`,
+                            });
+                            fetchRequests(); // Refresh the list
+                        }
+                    } catch (error) {
+                        console.error('Error rejecting request:', error);
+                        
+                        if (error.response?.data?.message) {
+                            toast.error('Rejection Failed', {
+                                description: error.response.data.message,
+                            });
+                        } else {
+                            toast.error('Failed to reject request. Please try again.');
+                        }
+                    }
+                }
+            },
+            cancel: {
+                label: 'Cancel',
+                onClick: () => {}
+            }
+        });
+    };
+
+    // Handle approve request
+    const handleApproveRequest = (requestId) => {
+        // Find the request to show details in confirmation
+        const request = requests.find(r => r.id === requestId);
+        
+        if (!request) {
+            toast.error('Request not found');
+            return;
+        }
+
+        // Show info toast with action buttons
+        toast.info('Approve this request?', {
+            description: `Requester: ${request.requester}\nSeedling: ${request.seedlingType}\nQuantity: ${request.quantity}\n\nThe seedlings will remain reserved until released.`,
+            duration: 10000,
+            action: {
+                label: 'Approve',
+                onClick: async () => {
+                    try {
+                        // Get user data from localStorage
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        const userType = localStorage.getItem('userType');
+
+                        const response = await requestService.updateRequest(requestId, {
+                            status: 'Approved',
+                            user_id: user?.id || null,
+                            user_type: userType || null,
+                        });
+
+                        if (response.success) {
+                            toast.success('Request Approved!', {
+                                description: `${request.quantity} ${request.seedlingType} seedlings approved for ${request.requester}. Ready for release.`,
+                            });
+                            fetchRequests(); // Refresh the list
+                        }
+                    } catch (error) {
+                        console.error('Error approving request:', error);
+                        
+                        if (error.response?.data?.message) {
+                            toast.error('Approval Failed', {
+                                description: error.response.data.message,
+                            });
+                        } else {
+                            toast.error('Failed to approve request. Please try again.');
+                        }
+                    }
+                }
+            },
+            cancel: {
+                label: 'Cancel',
+                onClick: () => {}
+            }
+        });
+    };
+
+    // Handle release seedlings
+    const handleReleaseSeedlings = (requestId) => {
+        // Find the request to show details in confirmation
+        const request = requests.find(r => r.id === requestId);
+        
+        if (!request) {
+            toast.error('Request not found');
+            return;
+        }
+
+        // Show warning toast with action buttons for final confirmation
+        toast.warning('Release these seedlings?', {
+            description: `Requester: ${request.requester}\nSeedling: ${request.seedlingType}\nQuantity: ${request.quantity}\n\nThis will complete the request and finalize the transaction.`,
+            duration: 10000,
+            action: {
+                label: 'Release Now',
+                onClick: async () => {
+                    try {
+                        // Get user data from localStorage
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        const userType = localStorage.getItem('userType');
+
+                        const response = await requestService.updateRequest(requestId, {
+                            status: 'Released',
+                            user_id: user?.id || null,
+                            user_type: userType || null,
+                        });
+
+                        if (response.success) {
+                            toast.success('Seedlings Released!', {
+                                description: `${request.quantity} ${request.seedlingType} seedlings released to ${request.requester}. Request completed.`,
+                            });
+                            fetchRequests(); // Refresh the list
+                        }
+                    } catch (error) {
+                        console.error('Error releasing seedlings:', error);
+                        
+                        if (error.response?.data?.message) {
+                            toast.error('Release Failed', {
+                                description: error.response.data.message,
+                            });
+                        } else {
+                            toast.error('Failed to release seedlings. Please try again.');
+                        }
+                    }
+                }
+            },
+            cancel: {
+                label: 'Cancel',
+                onClick: () => {}
+            }
+        });
+    };
+
     const filteredRequests = useMemo(() => {
-        return seedlingRequests.filter((request) => {
+        return requests.filter((request) => {
             const searchTerm = search.toLowerCase().trim();
 
             const matchesSearch =
-                request.requester.toLowerCase().includes(searchTerm) ||
-                request.organization.toLowerCase().includes(searchTerm) ||
-                request.seedlingType.toLowerCase().includes(searchTerm) ||
-                request.purpose.toLowerCase().includes(searchTerm) ||
-                request.priority.toLowerCase().includes(searchTerm) ||
-                request.status.toLowerCase().includes(searchTerm);
-
-            const matchesPriority =
-                priorityFilter === "all" ||
-                request.priority.toLowerCase() === priorityFilter;
+                request.requester?.toLowerCase().includes(searchTerm) ||
+                request.organization?.toLowerCase().includes(searchTerm) ||
+                request.seedlingType?.toLowerCase().includes(searchTerm) ||
+                request.purpose?.toLowerCase().includes(searchTerm) ||
+                request.status?.toLowerCase().includes(searchTerm);
 
             const matchesStatus =
                 statusFilter === "all" ||
-                request.status.toLowerCase() === statusFilter;
+                request.status?.toLowerCase() === statusFilter;
 
-            return (
-                matchesSearch &&
-                matchesPriority &&
-                matchesStatus
-            );
+            return matchesSearch && matchesStatus;
         });
-    }, [search, priorityFilter, statusFilter]);
+    }, [search, statusFilter, requests]);
 
     const totalPages = Math.ceil(
         filteredRequests.length / itemsPerPage
@@ -146,11 +285,6 @@ const RequestTable = () => {
 
     const handleSearch = (value) => {
         setSearch(value);
-        setCurrentPage(1);
-    };
-
-    const handlePriorityChange = (value) => {
-        setPriorityFilter(value);
         setCurrentPage(1);
     };
 
@@ -216,13 +350,12 @@ const RequestTable = () => {
                                 <SelectItem value="rejected">
                                     Rejected
                                 </SelectItem>
-                                <SelectItem value="released">
-                                    Released
-                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
+
+                <NewRequest onRequestAdded={handleRequestAdded} />
             </div>
 
             <div className="overflow-hidden rounded-md border">
@@ -233,6 +366,7 @@ const RequestTable = () => {
                             <TableHead>Organization</TableHead>
                             <TableHead>Various Seedling</TableHead>
                             <TableHead>Quantity</TableHead>
+                            <TableHead>Total Price</TableHead>
                             <TableHead>Purpose</TableHead>
                             <TableHead>Requested Date</TableHead>
                             <TableHead>Status</TableHead>
@@ -243,7 +377,13 @@ const RequestTable = () => {
                     </TableHeader>
 
                     <TableBody>
-                        {paginatedRequests.length > 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={9} className="text-center">
+                                    Loading...
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedRequests.length > 0 ? (
                             paginatedRequests.map((request) => (
                                 <TableRow key={request.id}>
 
@@ -260,7 +400,11 @@ const RequestTable = () => {
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.quantity.toLocaleString()}
+                                        {request.quantity?.toLocaleString()}
+                                    </TableCell>
+
+                                    <TableCell>
+                                        ₱{parseFloat(request.totalPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </TableCell>
 
                                     <TableCell className="max-w-[180px] truncate">
@@ -272,7 +416,17 @@ const RequestTable = () => {
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.status}
+                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                            request.status === 'Pending' 
+                                                ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                                                : request.status === 'Approved'
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : request.status === 'Released'
+                                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                                : 'bg-red-50 text-red-700 border border-red-200'
+                                        }`}>
+                                            {request.status}
+                                        </span>
                                     </TableCell>
 
                                     <TableCell className="text-right">
@@ -290,7 +444,9 @@ const RequestTable = () => {
                                                 align="end"
                                                 className="w-full"
                                             >
-                                                <DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => navigate(`/requests/${request.id}`)}
+                                                >
                                                     <Eye />
                                                     View Request Details
                                                 </DropdownMenuItem>
@@ -298,12 +454,17 @@ const RequestTable = () => {
                                                 {request.status ===
                                                     "Pending" && (
                                                         <>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={() => handleApproveRequest(request.id)}
+                                                            >
                                                                 <Check />
                                                                 Approve Request
                                                             </DropdownMenuItem>
 
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={() => handleRejectRequest(request.id)}
+                                                                className="text-red-600"
+                                                            >
                                                                 <X />
                                                                 Reject Request
                                                             </DropdownMenuItem>
@@ -312,7 +473,9 @@ const RequestTable = () => {
 
                                                 {request.status ===
                                                     "Approved" && (
-                                                        <DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleReleaseSeedlings(request.id)}
+                                                        >
                                                             <PackageCheck />
                                                             Release Seedlings
                                                         </DropdownMenuItem>
@@ -325,7 +488,7 @@ const RequestTable = () => {
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={10}
+                                    colSpan={9}
                                     className="text-center"
                                 >
                                     No seedling requests found.

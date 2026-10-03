@@ -60,7 +60,17 @@ const UpdateStage = ({ production, onUpdate }) => {
         setIsSubmitting(true);
 
         try {
-            const response = await productionService.updateStage(production.id, formData);
+            // Get user data from localStorage
+            const user = JSON.parse(localStorage.getItem('user'));
+            const userType = localStorage.getItem('userType');
+
+            const updateData = {
+                ...formData,
+                user_id: user?.id || null,
+                user_type: userType || null,
+            };
+
+            const response = await productionService.updateStage(production.id, updateData);
 
             if (response.success) {
                 alert('Production stage updated successfully!');
@@ -136,6 +146,11 @@ const UpdateStage = ({ production, onUpdate }) => {
                                         placeholder="Enter current quantity"
                                         value={formData.current_quantity}
                                         onChange={handleInputChange}
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                         min="0"
                                         max={production.quantity_sown}
                                         required

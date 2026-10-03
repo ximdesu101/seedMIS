@@ -79,10 +79,10 @@ const InventoryTable = () => {
                 item.classification?.toLowerCase().includes(searchTerm) ||
                 item.location?.toLowerCase().includes(searchTerm);
 
-            const totalQty = item.total_quantity || 0;
-            const status = totalQty > 0 ? 'available' : 'out of stock';
+            // Use the actual status from database
+            const itemStatus = item.status?.toLowerCase() || 'available';
             const matchesStatus =
-                statusFilter === "all" || status === statusFilter;
+                statusFilter === "all" || itemStatus === statusFilter.toLowerCase();
 
             return matchesSearch && matchesStatus;
         });
@@ -140,7 +140,7 @@ const InventoryTable = () => {
                             <SelectContent position="popper">
                                 <SelectItem value="all">All Seedlings</SelectItem>
                                 <SelectItem value="available">Available</SelectItem>
-                                <SelectItem value="out of stock">Out of Stock</SelectItem>
+                                <SelectItem value="not available">Not Available</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -215,11 +215,11 @@ const InventoryTable = () => {
                                         <TableCell>{item.location || 'N/A'}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                                totalQty > 0 
-                                                    ? 'bg-green-50 text-green-700' 
-                                                    : 'bg-red-50 text-red-700'
+                                                item.status === 'Available' 
+                                                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                                                    : 'bg-red-50 text-red-700 border border-red-200'
                                             }`}>
-                                                {totalQty > 0 ? 'Available' : 'Out of Stock'}
+                                                {item.status || 'Available'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
