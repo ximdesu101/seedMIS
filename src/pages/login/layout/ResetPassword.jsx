@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { PasswordStrength } from "@/components/ui/password-strength";
 import { Eye, EyeOff, KeyRound, Loader2, Lock, CheckCircle2 } from "lucide-react";
 import authService from "@/services/authService";
 import { toast } from "sonner";
@@ -35,8 +36,20 @@ const ResetPassword = ({ email, otp, onBackToLogin }) => {
             return;
         }
 
+        // Password complexity validation
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
+        
         if (formData.password.length < 8) {
-            toast.error("Password must be at least 8 characters");
+            toast.error("Weak Password", {
+                description: "Password must be at least 8 characters long."
+            });
+            return;
+        }
+
+        if (!passwordRegex.test(formData.password)) {
+            toast.error("Password Complexity Required", {
+                description: "Password must contain uppercase, lowercase, number, and special character (@$!%*?&#)."
+            });
             return;
         }
 
@@ -190,6 +203,13 @@ const ResetPassword = ({ email, otp, onBackToLogin }) => {
                                 </InputGroup>
                             </Field>
                         </FieldGroup>
+
+                        {/* Password Strength Indicator */}
+                        {formData.password && (
+                            <div className="p-4 bg-gray-50 rounded-md border">
+                                <PasswordStrength password={formData.password} />
+                            </div>
+                        )}
 
                         <Button
                             type="submit"

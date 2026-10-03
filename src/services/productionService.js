@@ -1,6 +1,16 @@
 import api from './api';
 
 const productionService = {
+    // Get next batch ID
+    getNextBatchId: async () => {
+        try {
+            const response = await api.get('/productions/next-batch-id');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Get production metrics
     getMetrics: async () => {
         try {

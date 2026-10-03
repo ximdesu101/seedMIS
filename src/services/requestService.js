@@ -84,9 +84,15 @@ const requestService = {
     },
 
     // Get monthly total sales (sum of total_price for Released requests in current month)
-    getMonthlySales: async () => {
+    getMonthlySales: async (dateRange = null) => {
         try {
-            const response = await api.get('/requests/monthly-sales');
+            const params = {};
+            if (dateRange && dateRange.startDate && dateRange.endDate) {
+                params.start_date = dateRange.startDate;
+                params.end_date = dateRange.endDate;
+            }
+            
+            const response = await api.get('/requests/monthly-sales', { params });
             return response.data;
         } catch (error) {
             throw error;

@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { PasswordStrength } from "@/components/ui/password-strength";
+import { AddressSelector } from "@/components/ui/address-selector";
 import {
     Dialog,
     DialogClose,
@@ -48,6 +50,7 @@ const EditClient = ({ client, onClientUpdated }) => {
         barangay: "",
         municipality: "",
         province: "",
+        status: "",
         password: "",
         password_confirmation: "",
     });
@@ -66,6 +69,7 @@ const EditClient = ({ client, onClientUpdated }) => {
                 barangay: client.barangay || "",
                 municipality: client.municipality || "",
                 province: client.province || "",
+                status: client.status || "Active",
                 password: "",
                 password_confirmation: "",
             });
@@ -86,6 +90,7 @@ const EditClient = ({ client, onClientUpdated }) => {
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
+            'status': 'status',
             'password': 'password',
             'confirm-password': 'password_confirmation'
         };
@@ -94,8 +99,31 @@ const EditClient = ({ client, onClientUpdated }) => {
         
         let processedValue = value;
         
-        if (id === 'contact-number') {
-            processedValue = value.replace(/\D/g, '');
+        // For name fields, only allow letters and spaces
+        if (id === 'first-name' || id === 'middle-name' || id === 'last-name') {
+            processedValue = value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+        }
+        // For contact number, format Philippine phone number
+        else if (id === 'contact-number') {
+            let cleaned = value.replace(/[^\d+]/g, '');
+            
+            if (cleaned.startsWith('+63')) {
+                cleaned = cleaned.substring(0, 13);
+            } else if (cleaned.startsWith('09')) {
+                cleaned = cleaned.substring(0, 11);
+            } else if (cleaned.startsWith('9')) {
+                cleaned = '0' + cleaned;
+                cleaned = cleaned.substring(0, 11);
+            } else if (cleaned.startsWith('+6')) {
+                cleaned = cleaned.substring(0, 13);
+            } else if (cleaned.startsWith('63') && cleaned.length > 2) {
+                cleaned = '+' + cleaned;
+                cleaned = cleaned.substring(0, 13);
+            } else {
+                cleaned = cleaned.substring(0, 11);
+            }
+            
+            processedValue = cleaned;
         } 
         else if (id === 'password' || id === 'confirm-password' || id === 'email') {
             processedValue = value;
@@ -125,17 +153,42 @@ const EditClient = ({ client, onClientUpdated }) => {
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
         if (!formData.last_name) newErrors['last-name'] = "Last name is required";
         if (!formData.email) newErrors['email'] = "Email is required";
-        if (!formData.contact_number) newErrors['contact-number'] = "Contact number is required";
+        
+        // Phone validation
+        if (!formData.contact_number) {
+            newErrors['contact-number'] = "Contact number is required";
+        } else {
+            const phone = formData.contact_number;
+            if (phone.startsWith('+63')) {
+                if (phone.length !== 13) {
+                    newErrors['contact-number'] = "Invalid format. Should be +63XXXXXXXXXX (13 digits)";
+                }
+            } else if (phone.startsWith('09')) {
+                if (phone.length !== 11) {
+                    newErrors['contact-number'] = "Invalid format. Should be 09XXXXXXXXX (11 digits)";
+                }
+            } else {
+                newErrors['contact-number'] = "Must start with +63 or 09";
+            }
+        }
+        
         if (!formData.barangay) newErrors['brgy'] = "Barangay is required";
         if (!formData.municipality) newErrors['municipality'] = "Municipality is required";
         if (!formData.province) newErrors['province'] = "Province is required";
         
-        // Password is optional for update
-        if (formData.password && formData.password.length < 8) {
-            newErrors['password'] = "Password must be at least 8 characters";
-        }
-        if (formData.password && formData.password !== formData.password_confirmation) {
-            newErrors['confirm-password'] = "Passwords do not match";
+        // Password complexity validation (only if password is provided)
+        if (formData.password) {
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
+            
+            if (formData.password.length < 8) {
+                newErrors['password'] = "Password must be at least 8 characters";
+            } else if (!passwordRegex.test(formData.password)) {
+                newErrors['password'] = "Password must contain uppercase, lowercase, number, and special character";
+            }
+            
+            if (formData.password !== formData.password_confirmation) {
+                newErrors['confirm-password'] = "Passwords do not match";
+            }
         }
 
         setErrors(newErrors);
@@ -239,10 +292,14 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     type="text"
                                     placeholder="CLT-0001"
                                     value={formData.client_id}
-                                    onChange={handleInputChange}
+                                    readOnly
+                                    className="bg-gray-50 cursor-not-allowed"
                                     required
                                 />
                             </InputGroup>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Client ID cannot be changed
+                            </p>
                             {errors['client-id'] && (
                                 <p className="text-red-500 text-sm mt-1">{errors['client-id']}</p>
                             )}
@@ -340,70 +397,70 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     <InputGroupInput
                                         id="contact-number"
                                         type="tel"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        placeholder="09123456789"
+                                        placeholder="+63 or 09 format"
                                         value={formData.contact_number}
                                         onChange={handleInputChange}
+                                        maxLength={13}
                                         required
                                     />
                                 </InputGroup>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Format: +63XXXXXXXXXX or 09XXXXXXXXX
+                                </p>
                                 {errors['contact-number'] && (
                                     <p className="text-red-500 text-sm mt-1">{errors['contact-number']}</p>
                                 )}
                             </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="brgy">Barangay</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="brgy"
-                                        type="text"
-                                        placeholder="SAMPLE BARANGAY"
-                                        value={formData.barangay}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['brgy'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['brgy']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="municipality"
-                                        type="text"
-                                        placeholder="SAMPLE MUNICIPALITY"
-                                        value={formData.municipality}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['municipality'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['municipality']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="province">Province</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="province"
-                                        type="text"
-                                        placeholder="SAMPLE PROVINCE"
-                                        value={formData.province}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['province'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['province']}</p>
-                                )}
-                            </Field>
                         </FieldGroup>
+
+                        {/* Address Selector */}
+                        <AddressSelector
+                            values={{
+                                province: formData.province,
+                                municipality: formData.municipality,
+                                barangay: formData.barangay
+                            }}
+                            onChange={({province, municipality, barangay}) => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    province,
+                                    municipality,
+                                    barangay
+                                }));
+                                setErrors(prev => ({
+                                    ...prev,
+                                    province: undefined,
+                                    municipality: undefined,
+                                    barangay: undefined
+                                }));
+                            }}
+                            errors={{
+                                province: errors['province'],
+                                municipality: errors['municipality'],
+                                barangay: errors['brgy']
+                            }}
+                        />
+
+                        {/* Status Field */}
+                        <Field>
+                            <FieldLabel htmlFor="status">Account Status</FieldLabel>
+                            <select
+                                id="status"
+                                value={formData.status}
+                                onChange={handleInputChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent"
+                                required
+                            >
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Inactive clients cannot make new requests
+                            </p>
+                            {errors['status'] && (
+                                <p className="text-red-500 text-sm mt-1">{errors['status']}</p>
+                            )}
+                        </Field>
 
                         <FieldGroup className="grid grid-cols-2 gap-4">
                             <Field>
@@ -458,6 +515,13 @@ const EditClient = ({ client, onClientUpdated }) => {
                                 )}
                             </Field>
                         </FieldGroup>
+
+                        {/* Password Strength Indicator */}
+                        {formData.password && (
+                            <div className="p-4 bg-gray-50 rounded-md border">
+                                <PasswordStrength password={formData.password} />
+                            </div>
+                        )}
                     </FieldGroup>
 
                     <DialogFooter className="mt-4">

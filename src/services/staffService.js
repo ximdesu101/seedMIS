@@ -1,6 +1,16 @@
 import api from './api';
 
 const staffService = {
+    // Get next staff ID
+    getNextStaffId: async () => {
+        try {
+            const response = await api.get('/staff/next-staff-id');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Get all staff
     getAllStaff: async () => {
         try {

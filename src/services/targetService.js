@@ -52,9 +52,15 @@ const targetService = {
     },
 
     // Get monthly target vs actual distribution
-    getMonthlyTargetVsActual: async () => {
+    getMonthlyTargetVsActual: async (dateRange = null) => {
         try {
-            const response = await api.get('/targets/monthly-target-vs-actual');
+            const params = {};
+            if (dateRange && dateRange.startDate && dateRange.endDate) {
+                params.start_date = dateRange.startDate;
+                params.end_date = dateRange.endDate;
+            }
+            
+            const response = await api.get('/targets/monthly-target-vs-actual', { params });
             return response.data;
         } catch (error) {
             throw error;

@@ -34,7 +34,16 @@ const TransferToInventory = ({ production, onUpdate, needsPriceInput }) => {
         setIsSubmitting(true);
 
         try {
-            const transferData = needsPriceInput ? { price_per_unit: pricePerUnit } : {};
+            // Get user data from localStorage
+            const user = JSON.parse(localStorage.getItem('user'));
+            const userType = localStorage.getItem('userType');
+
+            const transferData = {
+                ...(needsPriceInput ? { price_per_unit: pricePerUnit } : {}),
+                user_id: user?.id || null,
+                user_type: userType || null,
+            };
+
             const response = await productionService.transferToInventory(production.id, transferData);
 
             if (response.success) {
@@ -104,6 +113,11 @@ const TransferToInventory = ({ production, onUpdate, needsPriceInput }) => {
                                             placeholder="Enter price per unit"
                                             value={pricePerUnit}
                                             onChange={(e) => setPricePerUnit(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             min="0"
                                             step="0.01"
                                             required

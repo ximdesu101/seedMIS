@@ -65,6 +65,27 @@ const AddSeedlings = () => {
         location: '',
     });
 
+    // Fetch next batch ID when dialog opens
+    React.useEffect(() => {
+        if (dialogOpen) {
+            fetchNextBatchId();
+        }
+    }, [dialogOpen]);
+
+    const fetchNextBatchId = async () => {
+        try {
+            const response = await productionService.getNextBatchId();
+            if (response.success) {
+                setFormData(prev => ({
+                    ...prev,
+                    batch_id: response.data.batch_id
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching batch ID:', error);
+        }
+    };
+
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         setFormData(prev => ({
@@ -78,6 +99,19 @@ const AddSeedlings = () => {
             ...prev,
             [field]: value
         }));
+
+        // Reset stage when classification changes
+        if (field === 'classification') {
+            // If switching to Grafted and current stage is Germination or Seedling, reset stage
+            if (value === 'Grafted' && (formData.stage === 'Germination' || formData.stage === 'Seedling')) {
+                setFormData(prev => ({
+                    ...prev,
+                    classification: value,
+                    stage: '' // Reset stage
+                }));
+            }
+            // If switching to Seedling, allow any stage
+        }
     };
 
     const handleImageUpload = (e) => {
@@ -118,11 +152,17 @@ const AddSeedlings = () => {
         setIsSubmitting(true);
 
         try {
+            // Get user data from localStorage
+            const user = JSON.parse(localStorage.getItem('user'));
+            const userType = localStorage.getItem('userType');
+
             const productionData = {
                 ...formData,
                 date_sown: dateSown ? format(dateSown, 'yyyy-MM-dd') : null,
                 expected_ready: expectedReadyDate ? format(expectedReadyDate, 'yyyy-MM-dd') : null,
                 image: imageFile,
+                user_id: user?.id || null,
+                user_type: userType || null,
             };
 
             const response = await productionService.createProduction(productionData);
@@ -228,13 +268,17 @@ const AddSeedlings = () => {
                                         <InputGroupInput
                                             id="batch_id"
                                             type="text"
-                                            placeholder="BAT-001"
+                                            placeholder="BAT-0001"
                                             value={formData.batch_id}
-                                            onChange={handleInputChange}
+                                            readOnly
+                                            className="bg-gray-50 cursor-not-allowed"
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
                                     </InputGroup>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Auto-generated based on inventory records
+                                    </p>
                                 </Field>
                                 <Field>
                                     <FieldLabel htmlFor="seedling_type">Various of Seedling</FieldLabel>
@@ -259,7 +303,7 @@ const AddSeedlings = () => {
                                         <SelectValue placeholder="Select classification" />
                                     </SelectTrigger>
                                     <SelectContent position="popper">
-                                        <SelectItem value="Crafted">Crafted</SelectItem>
+                                        <SelectItem value="Grafted">Grafted</SelectItem>
                                         <SelectItem value="Seedling">Seedling</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -290,6 +334,7 @@ const AddSeedlings = () => {
                                                 mode="single"
                                                 selected={dateSown}
                                                 onSelect={setDateSown}
+                                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                                 initialFocus
                                             />
                                         </PopoverContent>
@@ -320,6 +365,7 @@ const AddSeedlings = () => {
                                                 mode="single"
                                                 selected={expectedReadyDate}
                                                 onSelect={setExpectedReadyDate}
+                                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                                 initialFocus
                                             />
                                         </PopoverContent>
@@ -334,9 +380,15 @@ const AddSeedlings = () => {
                                         <InputGroupInput
                                             id="quantity_sown"
                                             type="number"
+                                            min="0"
                                             placeholder="800"
                                             value={formData.quantity_sown}
                                             onChange={handleInputChange}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
@@ -348,9 +400,15 @@ const AddSeedlings = () => {
                                         <InputGroupInput
                                             id="current_quantity"
                                             type="number"
+                                            min="0"
                                             placeholder="750"
                                             value={formData.current_quantity}
                                             onChange={handleInputChange}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
@@ -366,8 +424,14 @@ const AddSeedlings = () => {
                                             <SelectValue placeholder="Production stage" />
                                         </SelectTrigger>
                                         <SelectContent position="popper">
-                                            <SelectItem value="Germination">Germination</SelectItem>
-                                            <SelectItem value="Seedling">Seedling</SelectItem>
+                                            {/* Show all stages for Seedling classification */}
+                                            {formData.classification === 'Seedling' && (
+                                                <>
+                                                    <SelectItem value="Germination">Germination</SelectItem>
+                                                    <SelectItem value="Seedling">Seedling</SelectItem>
+                                                </>
+                                            )}
+                                            {/* Show only Hardening and Ready for Grafted classification */}
                                             <SelectItem value="Hardening">Hardening</SelectItem>
                                             <SelectItem value="Ready">Ready</SelectItem>
                                         </SelectContent>

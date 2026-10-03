@@ -5,45 +5,53 @@ import {
     CardHeader,
     CardTitle,
     CardContent,
+    CardDescription,
 } from "@/components/ui/card";
 import {
     Sprout,
     PackageCheck,
     Clock,
     Truck,
-    TrendingUp,
-    TrendingDown,
+    Factory,
+    Warehouse,
 } from "lucide-react";
 
 const CardMetrics = () => {
     const [metrics, setMetrics] = useState([
         {
+            title: "In Production",
+            description: "Currently growing",
+            value: 0,
+            icon: Factory,
+            iconClass: "text-orange-600",
+        },
+        {
+            title: "In Inventory",
+            description: "Ready for distribution",
+            value: 0,
+            icon: Warehouse,
+            iconClass: "text-blue-600",
+        },
+        {
             title: "Total Seedlings",
+            description: "Production + Inventory",
             value: 0,
             icon: Sprout,
             iconClass: "text-green-600",
-            trend: null,
-        },
-        {
-            title: "Available Stock",
-            value: 0,
-            icon: PackageCheck,
-            iconClass: "text-blue-600",
-            trend: null,
         },
         {
             title: "Pending Request",
+            description: "Awaiting processing",
             value: 0,
             icon: Clock,
             iconClass: "text-amber-500",
-            trend: null,
         },
         {
             title: "Distributed",
+            description: "This month",
             value: 0,
             icon: Truck,
             iconClass: "text-purple-600",
-            trend: null,
         },
     ]);
 
@@ -60,32 +68,39 @@ const CardMetrics = () => {
                 
                 setMetrics([
                     { 
-                        title: "Total Seedlings", 
-                        value: data.total_seedlings?.value || 0, 
-                        icon: Sprout, 
-                        iconClass: "text-green-600",
-                        trend: data.total_seedlings?.trend,
+                        title: "In Production", 
+                        description: "Currently growing",
+                        value: data.in_production || 0, 
+                        icon: Factory, 
+                        iconClass: "text-orange-600",
                     },
                     { 
-                        title: "Available Stock", 
-                        value: data.available_stock?.value || 0, 
-                        icon: PackageCheck, 
+                        title: "In Inventory", 
+                        description: "Ready for distribution",
+                        value: data.in_inventory || 0, 
+                        icon: Warehouse, 
                         iconClass: "text-blue-600",
-                        trend: data.available_stock?.trend,
+                    },
+                    { 
+                        title: "Total Seedlings", 
+                        description: "Production + Inventory",
+                        value: data.total_seedlings || 0, 
+                        icon: Sprout, 
+                        iconClass: "text-green-600",
                     },
                     { 
                         title: "Pending Request", 
-                        value: data.pending_requests?.value || 0, 
+                        description: "Awaiting processing",
+                        value: data.pending_requests || 0, 
                         icon: Clock, 
                         iconClass: "text-amber-500",
-                        trend: data.pending_requests?.trend,
                     },
                     { 
                         title: "Distributed", 
-                        value: data.distributed?.value || 0, 
+                        description: "This month",
+                        value: data.distributed || 0, 
                         icon: Truck, 
                         iconClass: "text-purple-600",
-                        trend: data.distributed?.trend,
                     },
                 ]);
             }
@@ -95,29 +110,22 @@ const CardMetrics = () => {
     };
 
     return (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {metrics.map(({ title, value, icon: Icon, iconClass, trend }) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {metrics.map(({ title, description, value, icon: Icon, iconClass }) => (
                 <Card key={title}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                            {title}
-                        </CardTitle>
+                        <div className="space-y-1">
+                            <CardTitle className="text-sm font-medium">
+                                {title}
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                                {description}
+                            </CardDescription>
+                        </div>
                         <Icon className={`h-5 w-5 ${iconClass}`} />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-                        {trend && (
-                            <div className={`flex items-center gap-1 mt-1 text-xs ${
-                                trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                                {trend.direction === 'up' ? (
-                                    <TrendingUp className="h-3 w-3" />
-                                ) : (
-                                    <TrendingDown className="h-3 w-3" />
-                                )}
-                                <span>{trend.percentage}% {trend.label}</span>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
             ))}

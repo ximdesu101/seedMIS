@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -30,7 +31,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-    Trash,
+    Eye,
     Search,
     Ghost,
     Loader2
@@ -41,6 +42,7 @@ import clientService from "@/services/clientService";
 import { toast } from "sonner";
 
 const ClientTable = () => {
+    const navigate = useNavigate();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -239,20 +241,18 @@ const ClientTable = () => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => navigate(`/client/${client.id}`)}
+                                                title="View Details"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
                                             <EditClient 
                                                 client={client} 
                                                 onClientUpdated={fetchClients}
                                             />
-                                            <Button 
-                                                variant="destructive" 
-                                                size="icon"
-                                                onClick={() => handleDeleteClient(
-                                                    client.id, 
-                                                    `${client.first_name} ${client.last_name}`
-                                                )}
-                                            >
-                                                <Trash />
-                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>

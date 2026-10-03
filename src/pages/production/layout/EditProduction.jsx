@@ -235,7 +235,7 @@ const EditProduction = ({ production, onUpdate }) => {
                                             <SelectValue placeholder="Select classification" />
                                         </SelectTrigger>
                                         <SelectContent position="popper">
-                                            <SelectItem value="Crafted">Crafted</SelectItem>
+                                            <SelectItem value="Grafted">Grafted</SelectItem>
                                             <SelectItem value="Seedling">Seedling</SelectItem>
                                         </SelectContent>
                                     </Select>

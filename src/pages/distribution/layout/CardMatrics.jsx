@@ -37,7 +37,7 @@ const chartConfig = {
     },
 };
 
-const CardMetrics = () => {
+const CardMetrics = ({ dateRange }) => {
     const [metrics, setMetrics] = useState([
         {
             title: "Monthly Target",
@@ -67,20 +67,26 @@ const CardMetrics = () => {
 
     useEffect(() => {
         fetchMetrics();
-    }, []);
+    }, [dateRange]);
 
     const fetchMetrics = async () => {
         try {
             const [salesResponse, targetResponse, metricsResponse] = await Promise.all([
-                requestService.getMonthlySales(),
-                targetService.getMonthlyTargetVsActual(),
+                requestService.getMonthlySales(dateRange),
+                targetService.getMonthlyTargetVsActual(dateRange),
                 requestService.getMetrics(),
             ]);
+
+            console.log('Sales Response:', salesResponse);
+            console.log('Target Response:', targetResponse);
+            console.log('Metrics Response:', metricsResponse);
 
             const monthlySales = salesResponse.success ? (salesResponse.data.monthly_sales || 0) : 0;
             const monthlyTarget = targetResponse.success ? (targetResponse.data.target || 0) : 0;
             const monthlyDistributed = targetResponse.success ? (targetResponse.data.actual || 0) : 0;
-            const totalReleased = metricsResponse.success ? (metricsResponse.data.released || 0) : 0;
+            
+            // Use monthlyDistributed for Total Distribution (actual from date range)
+            const totalReleased = monthlyDistributed;
 
             setMetrics([
                 {

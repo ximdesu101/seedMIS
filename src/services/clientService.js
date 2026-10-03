@@ -1,6 +1,16 @@
 import api from './api';
 
 const clientService = {
+    // Get next client ID
+    getNextClientId: async () => {
+        try {
+            const response = await api.get('/clients/next-client-id');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Get all clients
     getAllClients: async () => {
         try {

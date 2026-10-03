@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import requestService from "@/services/requestService";
 import {
     Table,
     TableBody,
@@ -27,82 +28,70 @@ import {
     Search,
 } from "lucide-react";
 
-const seedlingRequests = [
-    {
-        requester: "Juan Dela Cruz",
-        organization: "San Jorge Municipal Agriculture Office",
-        seedlingType: "Mahogany",
-        quantity: 500,
-        TotalPrices: "1500",
-        purpose: "Community Reforestation",
-        ReleasedDate: "September 2, 2026",
-        status: "Released",
-    },
-    {
-        requester: "Maria Santos",
-        organization: "San Jorge Elementary School",
-        seedlingType: "Narra",
-        quantity: 200,
-        TotalPrices: "1000",
-        purpose: "School Greening Program",
-        ReleasedDate: "September 3, 2026",
-        status: "Released",
-    },
-    {
-        requester: "Pedro Reyes",
-        organization: "Barangay San Isidro",
-        seedlingType: "Gmelina",
-        quantity: 1000,
-        TotalPrices: "2000",
-        purpose: "Barangay Reforestation",
-        ReleasedDate: "September 4, 2026",
-        status: "Released",
-    },
-    {
-        requester: "Ana Garcia",
-        organization: "San Jorge Farmers Association",
-        seedlingType: "Mangium",
-        quantity: 750,
-        TotalPrices: "1500",
-        purpose: "Farm Boundary Planting",
-        ReleasedDate: "September 5, 2026",
-        status: "Released",
-    },
-    {
-        requester: "Jose Ramos",
-        organization: "Green Earth Organization",
-        seedlingType: "Tindalo",
-        quantity: 300,
-        TotalPrices: "1200",
-        purpose: "Environmental Restoration",
-        ReleasedDate: "September 6, 2026",
-        status: "Released",
-    },
-];
-
-const DistributeTable = () => {
+const DistributeTable = ({ dateRange }) => {
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [distributions, setDistributions] = useState([]);
+    const [loading, setLoading] = useState(true);
     const itemsPerPage = 5;
 
+    useEffect(() => {
+        fetchDistributions();
+    }, [dateRange]); // Re-fetch when dateRange changes
+
+    const fetchDistributions = async () => {
+        try {
+            setLoading(true);
+            const response = await requestService.getAllRequests();
+            if (response.success) {
+                // Filter only Released status
+                let releasedRequests = response.data.filter(
+                    request => request.status === 'Released'
+                );
+
+                // Filter by date range if provided
+                if (dateRange && dateRange.startDate && dateRange.endDate) {
+                    releasedRequests = releasedRequests.filter(request => {
+                        // Use requested_date if available, otherwise fall back to updated_at
+                        const dateToCheck = request.requestedDate 
+                            ? new Date(request.requestedDate) 
+                            : new Date(request.updated_at);
+                        
+                        const startDate = new Date(dateRange.startDate);
+                        const endDate = new Date(dateRange.endDate);
+                        
+                        // Set time to start/end of day for proper comparison
+                        startDate.setHours(0, 0, 0, 0);
+                        endDate.setHours(23, 59, 59, 999);
+                        
+                        return dateToCheck >= startDate && dateToCheck <= endDate;
+                    });
+                }
+
+                setDistributions(releasedRequests);
+            }
+        } catch (error) {
+            console.error('Error fetching distributions:', error);
+            alert('Failed to load distribution records');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const filteredRequests = useMemo(() => {
-        return seedlingRequests.filter((request) => {
+        return distributions.filter((request) => {
             const searchTerm = search.toLowerCase().trim();
 
             const matchesSearch =
-                request.requester.toLowerCase().includes(searchTerm) ||
-                request.organization.toLowerCase().includes(searchTerm) ||
-                request.seedlingType.toLowerCase().includes(searchTerm) ||
-                request.purpose.toLowerCase().includes(searchTerm) ||
-                request.priority.toLowerCase().includes(searchTerm) ||
-                request.status.toLowerCase().includes(searchTerm);
+                request.requester?.toLowerCase().includes(searchTerm) ||
+                request.organization?.toLowerCase().includes(searchTerm) ||
+                request.seedlingType?.toLowerCase().includes(searchTerm) ||
+                request.purpose?.toLowerCase().includes(searchTerm);
 
            
-            return (
-                matchesSearch
-            );
+            return matchesSearch;
         });
-    }, [search]);
+    }, [search, distributions]);
 
     const totalPages = Math.ceil(
         filteredRequests.length / itemsPerPage
@@ -173,13 +162,20 @@ const DistributeTable = () => {
                             <TableHead>Quantity</TableHead>
                             <TableHead>Total Price</TableHead>
                             <TableHead>Purpose</TableHead>
+                            <TableHead>Date Requested</TableHead>
                             <TableHead>Released Date</TableHead>
                             <TableHead>Status</TableHead>
                         </TableRow>
                     </TableHeader>
 
                     <TableBody>
-                        {paginatedRequests.length > 0 ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={9} className="text-center">
+                                    Loading...
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedRequests.length > 0 ? (
                             paginatedRequests.map((request) => (
                                 <TableRow key={request.id}>
 
@@ -196,11 +192,11 @@ const DistributeTable = () => {
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.quantity.toLocaleString()}
+                                        {request.quantity?.toLocaleString()}
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.TotalPrices}
+                                        ₱{parseFloat(request.totalPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </TableCell>
 
                                     <TableCell className="max-w-[180px] truncate">
@@ -208,11 +204,21 @@ const DistributeTable = () => {
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.ReleasedDate}
+                                        {request.requestedDate}
                                     </TableCell>
 
                                     <TableCell>
-                                        {request.status}
+                                        {new Date(request.updated_at).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                            {request.status}
+                                        </span>
                                     </TableCell>
 
                                 </TableRow>
@@ -220,10 +226,10 @@ const DistributeTable = () => {
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={10}
-                                    className="h-24 text-center"
+                                    colSpan={9}
+                                    className="text-center"
                                 >
-                                    No results.
+                                    No released seedlings found.
                                 </TableCell>
                             </TableRow>
                         )}

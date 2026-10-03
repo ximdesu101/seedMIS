@@ -36,6 +36,43 @@ const authService = {
             throw error;
         }
     },
+
+    getProfile: async (userId, userType) => {
+        try {
+            const response = await api.get('/profile', {
+                params: { user_id: userId, user_type: userType }
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    updateProfile: async (userId, userType, profileData) => {
+        try {
+            const response = await api.put('/profile', {
+                user_id: userId,
+                user_type: userType,
+                ...profileData
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    changePassword: async (userId, userType, passwordData) => {
+        try {
+            const response = await api.post('/change-password', {
+                user_id: userId,
+                user_type: userType,
+                ...passwordData
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
 };
 
 export default authService;
