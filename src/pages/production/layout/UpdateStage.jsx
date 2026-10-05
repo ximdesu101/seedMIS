@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowRight, Sprout } from "lucide-react";
 import productionService from "@/services/productionService";
+import { toast } from "sonner";
 
 const UpdateStage = ({ production, onUpdate }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,7 +74,9 @@ const UpdateStage = ({ production, onUpdate }) => {
             const response = await productionService.updateStage(production.id, updateData);
 
             if (response.success) {
-                alert('Production stage updated successfully!');
+                toast.success("Production stage updated successfully!", {
+                    description: `${production.seedling_type} (${production.batch_id}) stage changed to ${formData.stage}.`
+                });
                 setDialogOpen(false);
                 if (onUpdate) {
                     onUpdate();

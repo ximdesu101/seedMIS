@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/input-group";
 import { Archive } from "lucide-react";
 import productionService from "@/services/productionService";
+import { toast } from "sonner";
 
 const TransferToInventory = ({ production, onUpdate, needsPriceInput }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,7 +48,9 @@ const TransferToInventory = ({ production, onUpdate, needsPriceInput }) => {
             const response = await productionService.transferToInventory(production.id, transferData);
 
             if (response.success) {
-                alert('Batch transferred to inventory successfully!');
+                toast.success("Batch transferred to inventory successfully!", {
+                    description: `${production.current_quantity?.toLocaleString()} pieces of ${production.seedling_type} (${production.batch_id}) added to inventory.`
+                });
                 setDialogOpen(false);
                 if (onUpdate) {
                     onUpdate();

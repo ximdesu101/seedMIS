@@ -45,6 +45,7 @@ import {
     Upload,
     X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const AddSeedlings = () => {
     const [dateSown, setDateSown] = useState();
@@ -168,7 +169,9 @@ const AddSeedlings = () => {
             const response = await productionService.createProduction(productionData);
 
             if (response.success) {
-                alert('Production batch created successfully!');
+                toast.success("Production batch created successfully!", {
+                    description: `${formData.batch_id} - ${formData.seedling_type} (${formData.quantity_sown} pieces) has been added to production.`
+                });
                 resetForm();
                 setDialogOpen(false);
                 // Optionally refresh the production table

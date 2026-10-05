@@ -165,7 +165,7 @@ const AddStaff = ({ onStaffAdded }) => {
         
         if (!formData.staff_id) newErrors['staff-id'] = "Staff ID is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
-        // middle_name is optional - no validation needed
+        if (!formData.middle_name) newErrors['middle-name'] = "Middle name is required";
         if (!formData.last_name) newErrors['last-name'] = "Last name is required";
         if (!formData.email) newErrors['email'] = "Email is required";
         if (!formData.position) newErrors['position'] = "Position is required";
@@ -351,7 +351,7 @@ const AddStaff = ({ onStaffAdded }) => {
 
                             <Field>
                                 <FieldLabel htmlFor="middle-name">
-                                    Middle Name <span className="text-gray-400 text-sm">(Optional)</span>
+                                    Middle Name
                                 </FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -360,8 +360,15 @@ const AddStaff = ({ onStaffAdded }) => {
                                         placeholder="JANE"
                                         value={formData.middle_name}
                                         onChange={handleInputChange}
+                                        required
                                     />
                                 </InputGroup>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Enter "NA" if no middle name
+                                </p>
+                                {errors['middle-name'] && (
+                                    <p className="text-red-500 text-sm mt-1">{errors['middle-name']}</p>
+                                )}
                             </Field>
                         </FieldGroup>
 

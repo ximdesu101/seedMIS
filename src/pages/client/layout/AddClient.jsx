@@ -166,7 +166,7 @@ const AddClient = ({ onClientAdded }) => {
         if (!formData.client_id) newErrors['client-id'] = "Client ID is required";
         if (!formData.organization) newErrors['organization'] = "Organization is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
-        // middle_name is optional - no validation needed
+        if (!formData.middle_name) newErrors['middle-name'] = "Middle name is required";
         if (!formData.last_name) newErrors['last-name'] = "Last name is required";
         if (!formData.email) newErrors['email'] = "Email is required";
         
@@ -370,7 +370,7 @@ const AddClient = ({ onClientAdded }) => {
 
                             <Field>
                                 <FieldLabel htmlFor="middle-name">
-                                    Middle Name <span className="text-gray-400 text-sm">(Optional)</span>
+                                    Middle Name
                                 </FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -379,8 +379,15 @@ const AddClient = ({ onClientAdded }) => {
                                         placeholder="JANE"
                                         value={formData.middle_name}
                                         onChange={handleInputChange}
+                                        required
                                     />
                                 </InputGroup>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Enter "NA" if no middle name
+                                </p>
+                                {errors['middle-name'] && (
+                                    <p className="text-red-500 text-sm mt-1">{errors['middle-name']}</p>
+                                )}
                             </Field>
 
                             <Field>

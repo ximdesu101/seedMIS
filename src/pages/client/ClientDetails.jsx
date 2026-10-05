@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { getUserDisplayName } from "@/utils/nameHelper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
@@ -164,7 +165,7 @@ const ClientDetails = () => {
         );
     }
 
-    const fullName = `${client.first_name} ${client.middle_name ? client.middle_name + ' ' : ''}${client.last_name}`;
+    const fullName = getUserDisplayName(client);
     const fullAddress = `${client.barangay}, ${client.municipality}, ${client.province}`;
 
     return (

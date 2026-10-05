@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getUserDisplayName } from "@/utils/nameHelper";
 import {
     Table,
     TableBody,
@@ -100,7 +101,7 @@ const ClientTable = () => {
     const filteredClients = useMemo(() => {
         return clients.filter((client) => {
             const searchTerm = search.toLowerCase().trim();
-            const fullName = `${client.first_name} ${client.middle_name || ''} ${client.last_name}`.toLowerCase();
+            const fullName = getUserDisplayName(client).toLowerCase();
             const fullAddress = `${client.barangay}, ${client.municipality}, ${client.province}`.toLowerCase();
             
             const matchesSearch =
@@ -226,7 +227,7 @@ const ClientTable = () => {
                                 <TableRow key={client.id}>
                                     <TableCell>{client.client_id}</TableCell>
                                     <TableCell>
-                                        {client.first_name} {client.middle_name && `${client.middle_name} `}{client.last_name}
+                                        {getUserDisplayName(client)}
                                     </TableCell>
                                     <TableCell>{client.organization}</TableCell>
                                     <TableCell>
