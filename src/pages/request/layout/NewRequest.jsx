@@ -322,7 +322,7 @@ const NewRequest = ({ onRequestAdded }) => {
                 contact_number: selectedUser?.contact_number || "",
                 requested_date: requestedDate ? format(requestedDate, "yyyy-MM-dd") : null,
                 created_by_user_type: userType,
-                created_by_user_id: user.id, // For inactive staff validation
+                created_by_user_id: String(user.id), // Convert to string (admin: number, staff: varchar)
             };
 
             const response = await requestService.createRequest(requestData);
