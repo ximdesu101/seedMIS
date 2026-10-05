@@ -25,6 +25,16 @@ import {
     SidebarRail,
     SidebarFooter,
 } from '@/components/ui/sidebar';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export function AppSidebar({ ...props }) {
@@ -33,6 +43,7 @@ export function AppSidebar({ ...props }) {
     // Get current user info
     const [currentUser, setCurrentUser] = React.useState(null);
     const [userType, setUserType] = React.useState(null);
+    const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
     
     React.useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -82,71 +93,96 @@ export function AppSidebar({ ...props }) {
     const handleLogout = () => {
         localStorage.removeItem('user');
         localStorage.removeItem('userType');
-        toast.success("Logged out successfully");
+        toast.success("Logged out successfully", {
+            description: "You have been logged out of your account."
+        });
         navigate('/login');
     };
 
     return (
-        <Sidebar collapsible="icon" {...props}>
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg">
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white text-sidebar-primary-foreground">
-                                <img
-                                    src="/favicon-96x96.png"
-                                    alt="SeedIMIS"
-                                    className="size-6 object-contain"
-                                />
-                            </div>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">SeedIMIS</span>
-                                <span className="truncate text-xs text-muted-foreground">San Jorge Experiment Station</span>
-                            </div>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
-            <SidebarContent>
-                {/* Profile Section at Top */}
-                <SidebarMenu className="mb-2">
-                    <SidebarMenuItem>
-                        <SidebarMenuButton 
-                            onClick={() => navigate('/profile')}
-                            className="h-auto py-3 hover:bg-sidebar-accent"
-                        >
-                            <div className="flex items-center gap-3 w-full">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#016146] flex items-center justify-center text-white font-bold text-lg">
-                                    {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+        <>
+            <Sidebar collapsible="icon" {...props}>
+                <SidebarHeader>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton size="lg">
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white text-sidebar-primary-foreground">
+                                    <img
+                                        src="/favicon-96x96.png"
+                                        alt="SeedIMIS"
+                                        className="size-6 object-contain"
+                                    />
                                 </div>
-                                <div className="flex-1 text-left overflow-hidden">
-                                    <p className="text-sm font-semibold truncate">{currentUser?.name || 'User'}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{currentUser?.role || 'Role'}</p>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold">SeedIMIS</span>
+                                    <span className="truncate text-xs text-muted-foreground">San Jorge Experiment Station</span>
                                 </div>
-                                <UserCircle className="size-4 flex-shrink-0 text-muted-foreground" />
-                            </div>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-                
-                {/* Navigation Menu */}
-                <NavMain items={navMain} />
-            </SidebarContent>
-            <SidebarFooter>
-                <SidebarMenu>
-                    {/* Logout Menu Item */}
-                    <SidebarMenuItem>
-                        <SidebarMenuButton 
-                            onClick={handleLogout} 
-                            className="text-white hover:text-white hover:bg-red-600 focus:bg-red-600 focus:text-white"
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
+                <SidebarContent>
+                    {/* Profile Section at Top */}
+                    <SidebarMenu className="mb-2">
+                        <SidebarMenuItem>
+                            <SidebarMenuButton 
+                                onClick={() => navigate('/profile')}
+                                className="h-auto py-3 hover:bg-sidebar-accent"
+                            >
+                                <div className="flex items-center gap-3 w-full">
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#016146] flex items-center justify-center text-white font-bold text-lg">
+                                        {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+                                    </div>
+                                    <div className="flex-1 text-left overflow-hidden">
+                                        <p className="text-sm font-semibold truncate">{currentUser?.name || 'User'}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{currentUser?.role || 'Role'}</p>
+                                    </div>
+                                    <UserCircle className="size-4 flex-shrink-0 text-muted-foreground" />
+                                </div>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                    
+                    {/* Navigation Menu */}
+                    <NavMain items={navMain} />
+                </SidebarContent>
+                <SidebarFooter>
+                    <SidebarMenu>
+                        {/* Logout Menu Item */}
+                        <SidebarMenuItem>
+                            <SidebarMenuButton 
+                                onClick={() => setShowLogoutDialog(true)} 
+                                className="text-white hover:text-white hover:bg-red-600 focus:bg-red-600 focus:text-white"
+                            >
+                                <LogOut className="size-4" />
+                                <span>Logout</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarFooter>
+                <SidebarRail />
+            </Sidebar>
+
+            {/* Logout Confirmation Dialog */}
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent className="max-w-xs sm:max-w-[320px] top-4 right-4 left-auto translate-x-0 translate-y-0">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-base">Logout?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs">
+                            Are you sure you want to logout?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 mt-2">
+                        <AlertDialogCancel className="h-8 text-xs">Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleLogout}
+                            className="bg-red-600 hover:bg-red-700 h-8 text-xs"
                         >
-                            <LogOut className="size-4" />
-                            <span>Logout</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
-            <SidebarRail />
-        </Sidebar>
+                            Logout
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     )
 }

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getUserDisplayName } from "@/utils/nameHelper";
 import {
     Table,
     TableBody,
@@ -98,7 +99,7 @@ const StaffTable = () => {
     const filteredStaff = useMemo(() => {
         return staff.filter((employee) => {
             const searchTerm = search.toLowerCase().trim();
-            const fullName = `${employee.first_name} ${employee.middle_name || ''} ${employee.last_name}`.toLowerCase();
+            const fullName = getUserDisplayName(employee).toLowerCase();
             const fullAddress = `${employee.barangay}, ${employee.municipality}, ${employee.province}`.toLowerCase();
             
             const matchesSearch =
@@ -223,7 +224,7 @@ const StaffTable = () => {
                                 <TableRow key={employee.id}>
                                     <TableCell>{employee.staff_id}</TableCell>
                                     <TableCell>
-                                        {employee.first_name} {employee.middle_name && `${employee.middle_name} `}{employee.last_name}
+                                        {getUserDisplayName(employee)}
                                     </TableCell>
                                     <TableCell>{employee.position}</TableCell>
                                     <TableCell>
