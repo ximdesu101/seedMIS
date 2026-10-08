@@ -191,7 +191,7 @@ const StaffTable = () => {
                     <SelectContent position="popper">
                         <SelectItem value="all">All Accounts</SelectItem>
                         <SelectItem value="active">Active Accounts</SelectItem>
-                        <SelectItem value="deactivated">Deactivated Accounts</SelectItem>
+                        <SelectItem value="deactivated">Inactive Accounts</SelectItem>
                     </SelectContent>
                 </Select>
                 </div>

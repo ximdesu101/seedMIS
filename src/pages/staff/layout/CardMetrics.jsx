@@ -38,7 +38,7 @@ const chartConfig = {
         color: "var(--chart-2)",
     },
     deactivated: {
-        label: "Deactivated Accounts",
+        label: "Inactive Accounts",
         color: "var(--chart-3)",
     },
 };
@@ -68,9 +68,9 @@ const CardMetrics = () => {
                 const staff = response.data;
                 const total = staff.length;
                 
-                // For now, all staff are active
-                const active = total;
-                const deactivated = 0;
+                // Count active and inactive staff based on actual status
+                const active = staff.filter(s => s.status === 'Active').length;
+                const deactivated = staff.filter(s => s.status === 'Inactive').length;
                 
                 setTotalStaff(total);
                 setActiveStaff(active);
@@ -167,7 +167,7 @@ const CardMetrics = () => {
             chartColor: "var(--chart-2)",
         },
         {
-            title: "Deactivated Accounts",
+            title: "Inactive Accounts",
             value: deactivatedStaff,
             subtitle: getCurrentMonth(),
             icon: UserRoundX,

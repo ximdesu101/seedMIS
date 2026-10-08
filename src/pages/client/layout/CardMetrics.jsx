@@ -38,7 +38,7 @@ const chartConfig = {
         color: "var(--chart-2)",
     },
     deactivated: {
-        label: "Deactivated Accounts",
+        label: "Inactive Accounts",
         color: "var(--chart-3)",
     },
 };
@@ -68,10 +68,9 @@ const CardMetrics = () => {
                 const clients = response.data;
                 const total = clients.length;
                 
-                // For now, all clients are active
-                // You can add a status field to your database later
-                const active = total;
-                const deactivated = 0;
+                // Count active and inactive clients based on actual status
+                const active = clients.filter(client => client.status === 'Active').length;
+                const deactivated = clients.filter(client => client.status === 'Inactive').length;
                 
                 setTotalClients(total);
                 setActiveClients(active);
@@ -169,7 +168,7 @@ const CardMetrics = () => {
             chartColor: "var(--chart-2)",
         },
         {
-            title: "Deactivated Accounts",
+            title: "Inactive Accounts",
             value: deactivatedClients,
             subtitle: getCurrentMonth(),
             icon: UserRoundX,

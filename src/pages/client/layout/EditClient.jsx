@@ -125,7 +125,8 @@ const EditClient = ({ client, onClientUpdated }) => {
             
             processedValue = cleaned;
         } 
-        else if (id === 'password' || id === 'confirm-password' || id === 'email') {
+        else if (id === 'password' || id === 'confirm-password' || id === 'email' || id === 'status') {
+            // Don't uppercase password, email, or status fields
             processedValue = value;
         }
         else {

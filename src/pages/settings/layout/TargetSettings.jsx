@@ -131,44 +131,75 @@ const TargetSettings = () => {
 
             const promises = [];
 
-            // Save annual production
-            if (annualProduction && parseFloat(annualProduction) > 0 && !hasAnnualTarget) {
-                promises.push(
-                    targetService.saveTarget({
-                        target_type: 'annual_production',
-                        target_value: parseFloat(annualProduction),
-                        period: currentYear,
-                        description: `Annual production target for ${currentYear}`,
-                    })
-                );
-            }
-
-            // Save monthly distribution
-            if (monthlyDistribution && parseFloat(monthlyDistribution) > 0 && !hasMonthlyTarget) {
-                promises.push(
-                    targetService.saveTarget({
-                        target_type: 'monthly_distribution',
-                        target_value: parseFloat(monthlyDistribution),
-                        period: currentMonth,
-                        description: `Monthly distribution target`,
-                    })
-                );
-            }
-
-            // Save seedling targets
-            seedlingTargets.forEach(target => {
-                if (target.seedling_type && target.target_value && parseFloat(target.target_value) > 0) {
+            // If editing, use update instead of create
+            if (editingTarget) {
+                // Update the specific target
+                if (editingTarget.target_type === 'annual_production' && annualProduction) {
+                    promises.push(
+                        targetService.updateTarget(editingTarget.id, {
+                            target_value: parseFloat(annualProduction),
+                        })
+                    );
+                } else if (editingTarget.target_type === 'monthly_distribution' && monthlyDistribution) {
+                    promises.push(
+                        targetService.updateTarget(editingTarget.id, {
+                            target_value: parseFloat(monthlyDistribution),
+                        })
+                    );
+                } else if (editingTarget.target_type === 'seedling_type') {
+                    // Update seedling target
+                    const seedlingTarget = seedlingTargets.find(
+                        t => t.seedling_type === editingTarget.seedling_type
+                    );
+                    if (seedlingTarget && seedlingTarget.target_value) {
+                        promises.push(
+                            targetService.updateTarget(editingTarget.id, {
+                                target_value: parseFloat(seedlingTarget.target_value),
+                            })
+                        );
+                    }
+                }
+            } else {
+                // Creating new targets (existing logic)
+                // Save annual production
+                if (annualProduction && parseFloat(annualProduction) > 0 && !hasAnnualTarget) {
                     promises.push(
                         targetService.saveTarget({
-                            target_type: 'seedling_type',
-                            seedling_type: target.seedling_type,
-                            target_value: parseFloat(target.target_value),
+                            target_type: 'annual_production',
+                            target_value: parseFloat(annualProduction),
                             period: currentYear,
-                            description: `${target.seedling_type} production target for ${currentYear}`,
+                            description: `Annual production target for ${currentYear}`,
                         })
                     );
                 }
-            });
+
+                // Save monthly distribution
+                if (monthlyDistribution && parseFloat(monthlyDistribution) > 0 && !hasMonthlyTarget) {
+                    promises.push(
+                        targetService.saveTarget({
+                            target_type: 'monthly_distribution',
+                            target_value: parseFloat(monthlyDistribution),
+                            period: currentMonth,
+                            description: `Monthly distribution target`,
+                        })
+                    );
+                }
+
+                // Save seedling targets
+                seedlingTargets.forEach(target => {
+                    if (target.seedling_type && target.target_value && parseFloat(target.target_value) > 0) {
+                        promises.push(
+                            targetService.saveTarget({
+                                target_type: 'seedling_type',
+                                seedling_type: target.seedling_type,
+                                target_value: parseFloat(target.target_value),
+                                period: currentYear,
+                                description: `${target.seedling_type} production target for ${currentYear}`,
+                            })
+                        );
+                    }
+                });
+            }
 
             if (promises.length === 0) {
                 toast.error("Please fill in at least one target");
@@ -177,7 +208,7 @@ const TargetSettings = () => {
 
             await Promise.all(promises);
 
-            toast.success("Targets saved successfully!");
+            toast.success(editingTarget ? "Target updated successfully!" : "Targets saved successfully!");
             setIsOpen(false);
             setEditingTarget(null);
             fetchTargets(); // Refresh
@@ -414,11 +445,14 @@ const TargetSettings = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Target className="h-5 w-5" />
-                            Target Management
+                            {editingTarget ? 'Edit Target' : 'Target Management'}
                         </DialogTitle>
                         <DialogDescription>
-                            Set production, distribution, and revenue targets.
-                            {hasAnnualTarget && hasMonthlyTarget && (
+                            {editingTarget 
+                                ? `Editing ${getTargetTypeLabel(editingTarget.target_type)} target`
+                                : 'Set production, distribution, and revenue targets.'
+                            }
+                            {!editingTarget && hasAnnualTarget && hasMonthlyTarget && (
                                 <span className="block mt-2 text-amber-600">
                                     Annual and Monthly targets are already set for this period. 
                                     You can only set seedling type targets now.
@@ -430,8 +464,10 @@ const TargetSettings = () => {
                     <Separator />
 
                     <div className="space-y-6">
-                        {/* System-wide Targets - Only show if not yet set for current period */}
-                        {(!hasAnnualTarget || !hasMonthlyTarget) && (
+                        {/* System-wide Targets - Show only the relevant field when editing */}
+                        {(editingTarget?.target_type === 'annual_production' || 
+                          editingTarget?.target_type === 'monthly_distribution' || 
+                          (!editingTarget && (!hasAnnualTarget || !hasMonthlyTarget))) && (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-base">System Targets</CardTitle>
@@ -441,7 +477,9 @@ const TargetSettings = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <FieldGroup className="grid gap-4">
-                                        {!hasAnnualTarget && (
+                                        {/* Show Annual field if: editing annual OR (not editing AND no annual target exists) */}
+                                        {(editingTarget?.target_type === 'annual_production' || 
+                                          (!editingTarget && !hasAnnualTarget)) && (
                                             <Field>
                                                 <FieldLabel htmlFor="annual_production">
                                                     <TrendingUp className="h-4 w-4 inline mr-2" />
@@ -463,7 +501,9 @@ const TargetSettings = () => {
                                             </Field>
                                         )}
 
-                                        {!hasMonthlyTarget && (
+                                        {/* Show Monthly field if: editing monthly OR (not editing AND no monthly target exists) */}
+                                        {(editingTarget?.target_type === 'monthly_distribution' || 
+                                          (!editingTarget && !hasMonthlyTarget)) && (
                                             <Field>
                                                 <FieldLabel htmlFor="monthly_distribution">
                                                     <Target className="h-4 w-4 inline mr-2" />
@@ -489,104 +529,144 @@ const TargetSettings = () => {
                             </Card>
                         )}
 
-                        {/* Seedling Type Targets */}
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle className="text-base">Seedling Targets</CardTitle>
-                                        <CardDescription>
-                                            Production targets by seedling type
-                                        </CardDescription>
+                        {/* Seedling Type Targets - Only show when editing seedling type OR not editing at all */}
+                        {(editingTarget?.target_type === 'seedling_type' || !editingTarget) && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-base">Seedling Targets</CardTitle>
+                                            <CardDescription>
+                                                Production targets by seedling type
+                                            </CardDescription>
+                                        </div>
+                                        {!editingTarget && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={addSeedlingTarget}
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Add
+                                            </Button>
+                                        )}
                                     </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={addSeedlingTarget}
-                                    >
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        Add
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {availableSeedlings.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground text-center py-4">
-                                        No seedling types available. Add seedlings to inventory first.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {seedlingTargets.map((target, index) => (
-                                            <div key={index} className="flex gap-2 items-end">
-                                                <Field className="flex-1">
-                                                    <FieldLabel>Type</FieldLabel>
-                                                    <Select
-                                                        value={target.seedling_type}
-                                                        onValueChange={(value) =>
-                                                            updateSeedlingTarget(index, 'seedling_type', value)
-                                                        }
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select type" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {availableSeedlings
-                                                                .filter(seedling => 
-                                                                    !seedlingTargets.some((t, i) => 
-                                                                        i !== index && t.seedling_type === seedling
-                                                                    )
-                                                                )
-                                                                .map((seedling) => (
-                                                                    <SelectItem key={seedling} value={seedling}>
-                                                                        {seedling}
-                                                                    </SelectItem>
-                                                                ))
+                                </CardHeader>
+                                <CardContent>
+                                    {availableSeedlings.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                            No seedling types available. Add seedlings to inventory first.
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {/* If editing a specific seedling, show only that one */}
+                                            {editingTarget?.target_type === 'seedling_type' ? (
+                                                <div className="flex gap-2 items-end">
+                                                    <Field className="flex-1">
+                                                        <FieldLabel>Type</FieldLabel>
+                                                        <Input
+                                                            type="text"
+                                                            value={editingTarget.seedling_type}
+                                                            disabled
+                                                            className="bg-gray-50"
+                                                        />
+                                                    </Field>
+                                                    <Field className="flex-1">
+                                                        <FieldLabel>Target</FieldLabel>
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            placeholder="e.g., 10000"
+                                                            value={seedlingTargets[0]?.target_value || ''}
+                                                            onChange={(e) =>
+                                                                updateSeedlingTarget(0, 'target_value', e.target.value)
                                                             }
-                                                        </SelectContent>
-                                                    </Select>
-                                                </Field>
-                                                <Field className="flex-1">
-                                                    <FieldLabel>Target</FieldLabel>
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="e.g., 10000"
-                                                        value={target.target_value}
-                                                        onChange={(e) =>
-                                                            updateSeedlingTarget(index, 'target_value', e.target.value)
-                                                        }
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                                e.preventDefault();
-                                                            }
-                                                        }}
-                                                    />
-                                                </Field>
-                                                {seedlingTargets.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        onClick={() => removeSeedlingTarget(index)}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                                    e.preventDefault();
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Field>
+                                                </div>
+                                            ) : (
+                                                // If not editing, show all seedling targets (existing logic)
+                                                seedlingTargets.map((target, index) => (
+                                                    <div key={index} className="flex gap-2 items-end">
+                                                        <Field className="flex-1">
+                                                            <FieldLabel>Type</FieldLabel>
+                                                            <Select
+                                                                value={target.seedling_type}
+                                                                onValueChange={(value) =>
+                                                                    updateSeedlingTarget(index, 'seedling_type', value)
+                                                                }
+                                                            >
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select type" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {availableSeedlings
+                                                                        .filter(seedling => 
+                                                                            !seedlingTargets.some((t, i) => 
+                                                                                i !== index && t.seedling_type === seedling
+                                                                            )
+                                                                        )
+                                                                        .map((seedling) => (
+                                                                            <SelectItem key={seedling} value={seedling}>
+                                                                                {seedling}
+                                                                            </SelectItem>
+                                                                        ))
+                                                                    }
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </Field>
+                                                        <Field className="flex-1">
+                                                            <FieldLabel>Target</FieldLabel>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                placeholder="e.g., 10000"
+                                                                value={target.target_value}
+                                                                onChange={(e) =>
+                                                                    updateSeedlingTarget(index, 'target_value', e.target.value)
+                                                                }
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </Field>
+                                                        {seedlingTargets.length > 1 && (
+                                                            <Button
+                                                                type="button"
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={() => removeSeedlingTarget(index)}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" onClick={() => {
+                            setIsOpen(false);
+                            setEditingTarget(null);
+                        }}>
                             Cancel
                         </Button>
                         <Button onClick={handleSaveTargets} disabled={loading}>
-                            {loading ? "Saving..." : "Save Targets"}
+                            {loading ? "Saving..." : editingTarget ? "Update Target" : "Save Targets"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

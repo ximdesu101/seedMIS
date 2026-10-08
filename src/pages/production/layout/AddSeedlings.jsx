@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const AddSeedlings = () => {
+const AddSeedlings = ({ onSeedlingAdded }) => {
     const [dateSown, setDateSown] = useState();
     const [expectedReadyDate, setExpectedReadyDate] = useState();
     const [imageFile, setImageFile] = useState(null);
@@ -174,8 +174,11 @@ const AddSeedlings = () => {
                 });
                 resetForm();
                 setDialogOpen(false);
-                // Optionally refresh the production table
-                window.location.reload();
+                
+                // Call the callback to refresh the production table
+                if (onSeedlingAdded) {
+                    onSeedlingAdded();
+                }
             }
         } catch (error) {
             console.error('Error creating production batch:', error);

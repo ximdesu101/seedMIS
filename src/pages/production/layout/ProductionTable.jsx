@@ -209,7 +209,7 @@ const ProductionTable = () => {
                     <ViewAllHistory />
                 </div>
 
-                <AddSeedlings />
+                <AddSeedlings onSeedlingAdded={fetchProductions} />
             </div>
 
             <div className="overflow-hidden rounded-md border">

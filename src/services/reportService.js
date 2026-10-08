@@ -1,12 +1,10 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:8000/api';
+import api from './api';
 
 const reportService = {
     // Get distribution report
     getDistributionReport: async (params = {}) => {
         try {
-            const response = await axios.get(`${API_URL}/reports/distribution`, { params });
+            const response = await api.get('/reports/distribution', { params });
             return response.data;
         } catch (error) {
             console.error('Error fetching distribution report:', error);
@@ -17,7 +15,7 @@ const reportService = {
     // Get production report
     getProductionReport: async (params = {}) => {
         try {
-            const response = await axios.get(`${API_URL}/reports/production`, { params });
+            const response = await api.get('/reports/production', { params });
             return response.data;
         } catch (error) {
             console.error('Error fetching production report:', error);
@@ -28,7 +26,7 @@ const reportService = {
     // Get inventory report
     getInventoryReport: async () => {
         try {
-            const response = await axios.get(`${API_URL}/reports/inventory`);
+            const response = await api.get('/reports/inventory');
             return response.data;
         } catch (error) {
             console.error('Error fetching inventory report:', error);
@@ -39,7 +37,7 @@ const reportService = {
     // Get summary report
     getSummaryReport: async (params = {}) => {
         try {
-            const response = await axios.get(`${API_URL}/reports/summary`, { params });
+            const response = await api.get('/reports/summary', { params });
             return response.data;
         } catch (error) {
             console.error('Error fetching summary report:', error);

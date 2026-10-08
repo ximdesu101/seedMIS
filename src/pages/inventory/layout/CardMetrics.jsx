@@ -20,6 +20,7 @@ const CardMetrics = () => {
         total_value: 0,
         total_types: 0,
         low_stock: 0,
+        out_of_stock: 0,
     });
     const [loading, setLoading] = useState(true);
 
@@ -68,7 +69,7 @@ const CardMetrics = () => {
         },
         {
             title: "Out of Stock",
-            value: loading ? "..." : "0",
+            value: loading ? "..." : metrics.out_of_stock,
             icon: OctagonX,
             iconClass: "text-red-600",
         },

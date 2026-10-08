@@ -202,6 +202,9 @@ const Profile = () => {
                 toast.success("Profile Updated", {
                     description: "Your profile information has been updated successfully."
                 });
+                
+                // Auto-refresh profile data
+                await fetchProfile();
             }
         } catch (error) {
             console.error('Error updating profile:', error);
