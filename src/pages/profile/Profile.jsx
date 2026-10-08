@@ -655,22 +655,24 @@ const Profile = () => {
                                             </Field>
                                         </FieldGroup>
 
-                                        {/* Status Field - Readonly for Staff */}
-                                        <Field>
-                                            <FieldLabel htmlFor="status">Account Status</FieldLabel>
-                                            <InputGroup>
-                                                <InputGroupInput
-                                                    id="status"
-                                                    type="text"
-                                                    value={user?.status || 'Active'}
-                                                    readOnly
-                                                    className="bg-gray-50 cursor-not-allowed"
-                                                />
-                                            </InputGroup>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Contact administrator to change account status
-                                            </p>
-                                        </Field>
+                                        {/* Status Field - Read-only for Staff */}
+                                        {user.user_type === 'staff' && (
+                                            <Field>
+                                                <FieldLabel htmlFor="status">Account Status</FieldLabel>
+                                                <InputGroup>
+                                                    <InputGroupInput
+                                                        id="status"
+                                                        type="text"
+                                                        value={user?.status || 'Active'}
+                                                        readOnly
+                                                        className="bg-gray-50 cursor-not-allowed"
+                                                    />
+                                                </InputGroup>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Contact administrator to change account status
+                                                </p>
+                                            </Field>
+                                        )}
 
                                         <Separator className="my-2" />
 

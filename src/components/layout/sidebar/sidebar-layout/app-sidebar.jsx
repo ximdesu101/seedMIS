@@ -70,12 +70,10 @@ export function AppSidebar({ ...props }) {
         { title: "Seedling Production", url: "/seedling-production", icon: Sprout },
     ];
 
-    // Staff-accessible items (not including Staff Account management)
+    // Staff-accessible items (not including Staff Account management, Seedling Inventory, and Production)
     const staffAccessibleItems = [
         { title: "Client Account", url: "/client", icon: Users },
         { title: "Customer List", url: "/customer", icon: Users },
-        { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
-        { title: "Seedling Production", url: "/seedling-production", icon: Sprout },
     ];
 
     // Common items (visible to both Admin and Staff)

@@ -112,8 +112,11 @@ const StaffTable = () => {
                 employee.email.toLowerCase().includes(searchTerm) ||
                 employee.contact_number.includes(searchTerm);
             
-            // Status filter - for now all staff are active
-            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            // Status filter based on database status
+            const matchesStatus = 
+                statusFilter === "all" || 
+                (statusFilter === "active" && employee.status === "Active") ||
+                (statusFilter === "deactivated" && employee.status === "Inactive");
             
             return matchesSearch && matchesStatus;
         });
@@ -233,8 +236,12 @@ const StaffTable = () => {
                                     <TableCell>{employee.email}</TableCell>
                                     <TableCell>{employee.contact_number}</TableCell>
                                     <TableCell>
-                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                                            Active
+                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                            employee.status === 'Active'
+                                                ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                                : 'bg-red-50 text-red-700 ring-red-600/20'
+                                        }`}>
+                                            {employee.status || 'Active'}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">

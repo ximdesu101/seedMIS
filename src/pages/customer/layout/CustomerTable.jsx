@@ -32,25 +32,25 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
     Eye,
     Search,
     Ghost,
     Loader2,
     UserPlus,
+    MoreVertical,
+    Pencil,
 } from "lucide-react";
 import AddWalkinCustomer from "./AddWalkinClient";
+import EditCustomer from "./EditCustomer";
 import customerService from "@/services/customerService";
 import { toast } from "sonner";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const CustomerTable = () => {
     const navigate = useNavigate();
@@ -60,9 +60,6 @@ const CustomerTable = () => {
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
-    const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [isUpgrading, setIsUpgrading] = useState(false);
 
     // Fetch customers from API
     useEffect(() => {
@@ -112,39 +109,45 @@ const CustomerTable = () => {
     };
 
     const handleUpgradeClick = (customer) => {
-        setSelectedCustomer(customer);
-        setUpgradeDialogOpen(true);
+        // Show warning toast with both Cancel and Upgrade actions
+        toast.warning("Upgrade Customer to Client Account?", {
+            description: `This will create a client account for ${getUserDisplayName(customer)}. A temporary password will be sent to ${customer.email}. Continue?`,
+            duration: 10000,
+            cancel: {
+                label: "Cancel",
+                onClick: () => {
+                    toast.info("Upgrade cancelled");
+                }
+            },
+            action: {
+                label: "Upgrade",
+                onClick: () => handleUpgradeConfirm(customer)
+            },
+        });
     };
 
-    const handleUpgradeConfirm = async () => {
-        if (!selectedCustomer) return;
+    const handleUpgradeConfirm = async (customer) => {
+        const upgradeToast = toast.loading("Upgrading customer account...", {
+            description: "Please wait while we create the client account."
+        });
 
-        setIsUpgrading(true);
         try {
-            const response = await customerService.upgradeToClient(selectedCustomer.id);
+            const response = await customerService.upgradeToClient(customer.id);
             if (response.success) {
                 toast.success("Customer upgraded successfully!", {
-                    description: `${selectedCustomer.first_name} ${selectedCustomer.last_name} now has a client account (${response.data.client.client_id}). An email with login credentials has been sent to ${selectedCustomer.email}`,
-                    duration: 10000,
-                });
-
-                // Show temporary password in a separate toast (backup in case email fails)
-                toast.info("Backup: Temporary Password", {
-                    description: `Password: ${response.data.temporary_password}\n\nAn email was sent to the client, but you can provide this password as backup if needed.`,
+                    id: upgradeToast,
+                    description: `${customer.first_name} ${customer.last_name} now has a client account (${response.data.client.client_id}). Temporary password: ${response.data.temporary_password}`,
                     duration: 15000,
                 });
 
-                setUpgradeDialogOpen(false);
-                setSelectedCustomer(null);
                 fetchCustomers(); // Refresh the list
             }
         } catch (error) {
             console.error("Error upgrading customer:", error);
             toast.error("Failed to upgrade customer", {
+                id: upgradeToast,
                 description: error.response?.data?.message || "Please try again"
             });
-        } finally {
-            setIsUpgrading(false);
         }
     };
 
@@ -164,8 +167,11 @@ const CustomerTable = () => {
                 customer.email.toLowerCase().includes(searchTerm) ||
                 customer.contact_number.includes(searchTerm);
             
-            // Status filter - all customers are active
-            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            // Status filter based on database status
+            const matchesStatus = 
+                statusFilter === "all" || 
+                (statusFilter === "active" && customer.status === "Active") ||
+                (statusFilter === "deactivated" && customer.status === "Inactive");
             
             return matchesSearch && matchesStatus;
         });
@@ -284,31 +290,48 @@ const CustomerTable = () => {
                                     <TableCell>{customer.email}</TableCell>
                                     <TableCell>{customer.contact_number}</TableCell>
                                     <TableCell>
-                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                                            Active
+                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                            customer.status === 'Active'
+                                                ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                                : 'bg-red-50 text-red-700 ring-red-600/20'
+                                        }`}>
+                                            {customer.status || 'Active'}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon"
-                                                onClick={() => navigate(`/customer/${customer.id}`)}
-                                                title="View Details"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleUpgradeClick(customer)}
-                                                title="Upgrade to Client Account"
-                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                            >
-                                                <UserPlus className="h-4 w-4 mr-1" />
-                                                Upgrade
-                                            </Button>
-                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => navigate(`/customer/${customer.id}`)}>
+                                                    <Eye className="h-4 w-4 mr-2" />
+                                                    View Details
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                    <EditCustomer 
+                                                        customer={customer}
+                                                        onCustomerUpdated={fetchCustomers}
+                                                        trigger={
+                                                            <div className="flex items-center w-full">
+                                                                <Pencil className="h-4 w-4 mr-2" />
+                                                                Edit Customer
+                                                            </div>
+                                                        }
+                                                    />
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleUpgradeClick(customer)}
+                                                    className="text-blue-600 focus:text-blue-700"
+                                                >
+                                                    <UserPlus className="h-4 w-4 mr-2" />
+                                                    Upgrade to Client
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -400,49 +423,6 @@ const CustomerTable = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Upgrade Confirmation Dialog */}
-            <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Upgrade Customer to Client Account?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will create a client account for:
-                            <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                                <p className="font-medium text-gray-900">
-                                    {selectedCustomer && getUserDisplayName(selectedCustomer)}
-                                </p>
-                                <p className="text-sm text-gray-600">{selectedCustomer?.email}</p>
-                            </div>
-                            <div className="mt-3 space-y-1 text-sm">
-                                <p>• A temporary password will be generated</p>
-                                <p>• Customer record will be archived</p>
-                                <p>• Client can login and change password</p>
-                            </div>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isUpgrading}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleUpgradeConfirm}
-                            disabled={isUpgrading}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            {isUpgrading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Upgrading...
-                                </>
-                            ) : (
-                                <>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Upgrade to Client
-                                </>
-                            )}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 };

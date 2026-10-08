@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { PasswordStrength } from "@/components/ui/password-strength";
 import { AddressSelector } from "@/components/ui/address-selector";
 import {
     Dialog,
@@ -20,95 +19,84 @@ import {
 } from "@/components/ui/field";
 import {
     InputGroup,
-    InputGroupAddon,
     InputGroupInput,
 } from "@/components/ui/input-group";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Pencil,
-    Eye,
-    EyeOff,
     Loader2,
 } from "lucide-react";
-import staffService from "@/services/staffService";
+import customerService from "@/services/customerService";
 import { toast } from "sonner";
 
-const EditStaff = ({ staff, onStaffUpdated }) => {
-    const [showPassword, setShowPassword] = React.useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isOpen, setIsOpen] = React.useState(false);
     const [errors, setErrors] = React.useState({});
     
-    // Get current user type to determine if status field should be shown
-    const userType = localStorage.getItem('userType');
-    const isAdmin = userType === 'admin';
-    
     const [formData, setFormData] = React.useState({
-        staff_id: "",
+        customer_id: "",
+        organization: "",
         first_name: "",
         middle_name: "",
         last_name: "",
         email: "",
-        position: "",
         contact_number: "",
         barangay: "",
         municipality: "",
         province: "",
         status: "",
-        password: "",
-        password_confirmation: "",
     });
 
-    // Load staff data when dialog opens
+    // Load customer data when dialog opens
     React.useEffect(() => {
-        if (isOpen && staff) {
+        if (isOpen && customer) {
             setFormData({
-                staff_id: staff.staff_id || "",
-                first_name: staff.first_name || "",
-                middle_name: staff.middle_name || "",
-                last_name: staff.last_name || "",
-                email: staff.email || "",
-                position: staff.position || "",
-                contact_number: staff.contact_number || "",
-                barangay: staff.barangay || "",
-                municipality: staff.municipality || "",
-                province: staff.province || "",
-                status: staff.status || "Active",
-                password: "",
-                password_confirmation: "",
+                customer_id: customer.customer_id || "",
+                organization: customer.organization || "",
+                first_name: customer.first_name || "",
+                middle_name: customer.middle_name || "",
+                last_name: customer.last_name || "",
+                email: customer.email || "",
+                contact_number: customer.contact_number || "",
+                barangay: customer.barangay || "",
+                municipality: customer.municipality || "",
+                province: customer.province || "",
+                status: customer.status || "Active",
             });
         }
-    }, [isOpen, staff]);
+    }, [isOpen, customer]);
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         
         const fieldMapping = {
-            'staff-id': 'staff_id',
+            'customer-id': 'customer_id',
+            'organization': 'organization',
             'first-name': 'first_name',
             'middle-name': 'middle_name',
             'last-name': 'last_name',
             'email': 'email',
-            'position': 'position',
             'contact-number': 'contact_number',
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
             'status': 'status',
-            'password': 'password',
-            'confirm-password': 'password_confirmation'
         };
         
         const stateKey = fieldMapping[id] || id;
         
         let processedValue = value;
         
-        // For name fields, only allow letters and spaces
         if (id === 'first-name' || id === 'middle-name' || id === 'last-name') {
             processedValue = value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
-        }
-        // For contact number, format Philippine phone number
-        else if (id === 'contact-number') {
+        } else if (id === 'contact-number') {
             let cleaned = value.replace(/[^\d+]/g, '');
             
             if (cleaned.startsWith('+63')) {
@@ -118,22 +106,14 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
             } else if (cleaned.startsWith('9')) {
                 cleaned = '0' + cleaned;
                 cleaned = cleaned.substring(0, 11);
-            } else if (cleaned.startsWith('+6')) {
-                cleaned = cleaned.substring(0, 13);
-            } else if (cleaned.startsWith('63') && cleaned.length > 2) {
-                cleaned = '+' + cleaned;
-                cleaned = cleaned.substring(0, 13);
             } else {
                 cleaned = cleaned.substring(0, 11);
             }
             
             processedValue = cleaned;
-        } 
-        else if (id === 'password' || id === 'confirm-password' || id === 'email' || id === 'status') {
-            // Don't uppercase password, email, or status fields
+        } else if (id === 'email' || id === 'status') {
             processedValue = value;
-        }
-        else {
+        } else {
             processedValue = value.toUpperCase();
         }
         
@@ -153,13 +133,11 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
     const validateForm = () => {
         const newErrors = {};
         
-        if (!formData.staff_id) newErrors['staff-id'] = "Staff ID is required";
+        if (!formData.customer_id) newErrors['customer-id'] = "Customer ID is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
         if (!formData.last_name) newErrors['last-name'] = "Last name is required";
         if (!formData.email) newErrors['email'] = "Email is required";
-        if (!formData.position) newErrors['position'] = "Position is required";
         
-        // Phone validation
         if (!formData.contact_number) {
             newErrors['contact-number'] = "Contact number is required";
         } else {
@@ -180,21 +158,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
         if (!formData.barangay) newErrors['brgy'] = "Barangay is required";
         if (!formData.municipality) newErrors['municipality'] = "Municipality is required";
         if (!formData.province) newErrors['province'] = "Province is required";
-        
-        // Password complexity validation (only if password is provided)
-        if (formData.password) {
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]+$/;
-            
-            if (formData.password.length < 8) {
-                newErrors['password'] = "Password must be at least 8 characters";
-            } else if (!passwordRegex.test(formData.password)) {
-                newErrors['password'] = "Password must contain uppercase, lowercase, number, and special character";
-            }
-            
-            if (formData.password !== formData.password_confirmation) {
-                newErrors['confirm-password'] = "Passwords do not match";
-            }
-        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -202,8 +165,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
 
     const resetForm = () => {
         setErrors({});
-        setShowPassword(false);
-        setShowConfirmPassword(false);
     };
 
     const handleSubmit = async (e) => {
@@ -217,27 +178,21 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
         setIsSubmitting(true);
 
         try {
-            const updateData = { ...formData };
-            if (!updateData.password) {
-                delete updateData.password;
-                delete updateData.password_confirmation;
-            }
-
-            const response = await staffService.updateStaff(staff.id, updateData);
+            const response = await customerService.updateCustomer(customer.id, formData);
             
             if (response.success) {
-                toast.success("Staff updated successfully!", {
+                toast.success("Customer updated successfully!", {
                     description: `${formData.first_name} ${formData.last_name} has been updated.`
                 });
                 resetForm();
                 setIsOpen(false);
                 
-                if (onStaffUpdated) {
-                    onStaffUpdated();
+                if (onCustomerUpdated) {
+                    onCustomerUpdated();
                 }
             }
         } catch (error) {
-            console.error("Error updating staff:", error);
+            console.error("Error updating customer:", error);
             
             if (error.response?.data?.errors) {
                 const backendErrors = {};
@@ -258,7 +213,7 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                     description: error.response.data.message
                 });
             } else {
-                toast.error("Failed to update staff. Please try again.");
+                toast.error("Failed to update customer. Please try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -268,9 +223,11 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="icon">
-                    <Pencil className="h-4 w-4" />
-                </Button>
+                {trigger || (
+                    <Button variant="outline" size="icon">
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                )}
             </DialogTrigger>
 
             <DialogContent
@@ -278,9 +235,9 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                 onInteractOutside={(event) => event.preventDefault()}
             >
                 <DialogHeader>
-                    <DialogTitle>Edit Staff</DialogTitle>
+                    <DialogTitle>Edit Customer</DialogTitle>
                     <DialogDescription>
-                        Update staff information. Leave password empty to keep current password.
+                        Update customer information.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -289,24 +246,39 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                 <form onSubmit={handleSubmit}>
                     <FieldGroup>
                         <Field>
-                            <FieldLabel htmlFor="staff-id">Staff ID</FieldLabel>
+                            <FieldLabel htmlFor="customer-id">Customer ID</FieldLabel>
                             <InputGroup>
                                 <InputGroupInput
-                                    id="staff-id"
+                                    id="customer-id"
                                     type="text"
-                                    placeholder="STF-0001"
-                                    value={formData.staff_id}
+                                    placeholder="CUST-0001"
+                                    value={formData.customer_id}
                                     readOnly
                                     className="bg-gray-50 cursor-not-allowed"
                                     required
                                 />
                             </InputGroup>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Staff ID cannot be changed
+                                Customer ID cannot be changed
                             </p>
-                            {errors['staff-id'] && (
-                                <p className="text-red-500 text-sm mt-1">{errors['staff-id']}</p>
+                            {errors['customer-id'] && (
+                                <p className="text-red-500 text-sm mt-1">{errors['customer-id']}</p>
                             )}
+                        </Field>
+
+                        <Field>
+                            <FieldLabel htmlFor="organization">
+                                Organization
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupInput
+                                    id="organization"
+                                    type="text"
+                                    placeholder="ORGANIZATION NAME"
+                                    value={formData.organization}
+                                    onChange={handleInputChange}
+                                />
+                            </InputGroup>
                         </Field>
 
                         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -381,23 +353,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
 
                         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field>
-                                <FieldLabel htmlFor="position">Position</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="position"
-                                        type="text"
-                                        placeholder="SALES ASSOCIATE"
-                                        value={formData.position}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['position'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['position']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
                                 <FieldLabel htmlFor="contact-number">Contact Number</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -417,6 +372,21 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                                     <p className="text-red-500 text-sm mt-1">{errors['contact-number']}</p>
                                 )}
                             </Field>
+
+                            <Field>
+                                <FieldLabel htmlFor="status">Account Status</FieldLabel>
+                                <Select value={formData.status} onValueChange={(value) => {
+                                    setFormData(prev => ({...prev, status: value}));
+                                }}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper">
+                                        <SelectItem value="Active">Active</SelectItem>
+                                        <SelectItem value="Inactive">Inactive</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Field>
                         </FieldGroup>
 
                         {/* Address Selector */}
@@ -433,7 +403,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                                     municipality,
                                     barangay
                                 }));
-                                // Clear errors when changed
                                 setErrors(prev => ({
                                     ...prev,
                                     province: undefined,
@@ -447,29 +416,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                                 barangay: errors['brgy']
                             }}
                         />
-
-                        {/* Status Field - Only visible to Admin */}
-                        {isAdmin && (
-                            <Field>
-                                <FieldLabel htmlFor="status">Account Status</FieldLabel>
-                                <select
-                                    id="status"
-                                    value={formData.status}
-                                    onChange={handleInputChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent"
-                                    required
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Set to Inactive to prevent staff from processing transactions
-                                </p>
-                                {errors['status'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['status']}</p>
-                                )}
-                            </Field>
-                        )}
 
                     </FieldGroup>
 
@@ -489,7 +435,7 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                             ) : (
                                 <>
                                     <Pencil />
-                                    Update Staff
+                                    Update Customer
                                 </>
                             )}
                         </Button>
@@ -500,4 +446,4 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
     );
 };
 
-export default EditStaff;
+export default EditCustomer;

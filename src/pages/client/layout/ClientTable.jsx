@@ -114,9 +114,11 @@ const ClientTable = () => {
                 client.email.toLowerCase().includes(searchTerm) ||
                 client.contact_number.includes(searchTerm);
             
-            // Status filter - for now all clients are active
-            // You can add a status field to your database later
-            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            // Status filter based on database status
+            const matchesStatus = 
+                statusFilter === "all" || 
+                (statusFilter === "active" && client.status === "Active") ||
+                (statusFilter === "deactivated" && client.status === "Inactive");
             
             return matchesSearch && matchesStatus;
         });
@@ -236,8 +238,12 @@ const ClientTable = () => {
                                     <TableCell>{client.email}</TableCell>
                                     <TableCell>{client.contact_number}</TableCell>
                                     <TableCell>
-                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                                            Active
+                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                            client.status === 'Active'
+                                                ? 'bg-green-50 text-green-700 ring-green-600/20'
+                                                : 'bg-red-50 text-red-700 ring-red-600/20'
+                                        }`}>
+                                            {client.status || 'Active'}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">
