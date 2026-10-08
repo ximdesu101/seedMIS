@@ -1,499 +1,450 @@
-import * as React from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AddressSelector } from "@/components/ui/address-selector";
+import { getUserDisplayName } from "@/utils/nameHelper";
 import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-    Field,
-    FieldGroup,
-    FieldLabel,
-} from "@/components/ui/field";
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import {
     InputGroup,
+    InputGroupAddon,
     InputGroupInput,
 } from "@/components/ui/input-group";
 import {
-    CirclePlus,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+    Eye,
+    Search,
+    Ghost,
     Loader2,
+    UserPlus,
 } from "lucide-react";
-import clientService from "@/services/clientService";
+import AddWalkinCustomer from "./AddWalkinClient";
+import customerService from "@/services/customerService";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const AddWalkinClient = ({ onClientAdded }) => {
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [isOpen, setIsOpen]./CustomerTable(false);
-    const [errors, setErrors] = React.useState({});
-    
-    const [formData, setFormData] = React.useState({
-        client_id: "",
-        organization: "",
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        email: "",
-        contact_number: "",
-        barangay: "",
-        municipality: "",
-        province: "",
-    });
+const CustomerTable = () => {
+    const navigate = useNavigate();
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+    const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
-    // Fetch next client ID when dialog opens
-    React.useEffect(() => {
-        if (isOpen) {
-            fetchNextClientId();
-        }
-    }, [isOpen]);
+    // Fetch customers from API
+    useEffect(() => {
+        fetchCustomers();
+    }, []);
 
-    const fetchNextClientId = async () => {
+    const fetchCustomers = async () => {
         try {
-            const response = await clientService.getNextClientId();
+            setLoading(true);
+            const response = await customerService.getAllCustomers();
             if (response.success) {
-                setFormData(prev => ({
-                    ...prev,
-                    client_id: response.data.client_id
-                }));
+                setCustomers(response.data);
             }
         } catch (error) {
-            console.error('Error fetching client ID:', error);
+            console.error("Error fetching customers:", error);
+            toast.error("Failed to load customers", {
+                description: "Please make sure the backend server is running"
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleInputChange = (e) => {
-        const { id, value } = e.target;
-        
-        // Map field IDs to state keys
-        const fieldMapping = {
-            'client-id': 'client_id',
-            'organization': 'organization',
-            'first-name': 'first_name',
-            'middle-name': 'middle_name',
-            'last-name': 'last_name',
-            'email': 'email',
-            'contact-number': 'contact_number',
-            'brgy': 'barangay',
-            'municipality': 'municipality',
-            'province': 'province',
-        };
-        
-        const stateKey = fieldMapping[id] || id;
-        
-        let processedValue = value;
-        
-        // For name fields, only allow letters and spaces
-        if (id === 'first-name' || id === 'middle-name' || id === 'last-name') {
-            // Remove any characters that are not letters or spaces
-            processedValue = value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
-        }
-        // For contact number, format Philippine phone number
-        else if (id === 'contact-number') {
-            // Remove all non-digit characters except +
-            let cleaned = value.replace(/[^\d+]/g, '');
-            
-            // If starts with +63, limit to 13 characters (+63 + 10 digits)
-            if (cleaned.startsWith('+63')) {
-                cleaned = cleaned.substring(0, 13);
-            } 
-            // If starts with 09, limit to 11 characters
-            else if (cleaned.startsWith('09')) {
-                cleaned = cleaned.substring(0, 11);
-            }
-            // If starts with 9 (user typing 09), allow it
-            else if (cleaned.startsWith('9')) {
-                cleaned = '0' + cleaned;
-                cleaned = cleaned.substring(0, 11);
-            }
-            // If starts with +6, allow it (user typing +63)
-            else if (cleaned.startsWith('+6')) {
-                cleaned = cleaned.substring(0, 13);
-            }
-            // If starts with 63, convert to +63
-            else if (cleaned.startsWith('63') && cleaned.length > 2) {
-                cleaned = '+' + cleaned;
-                cleaned = cleaned.substring(0, 13);
-            }
-            // Otherwise, limit to 11 digits
-            else {
-                cleaned = cleaned.substring(0, 11);
-            }
-            
-            processedValue = cleaned;
-        } 
-        // For email, keep as is (case-sensitive)
-        else if (id === 'email') {
-            processedValue = value;
-        }
-        // For all other text fields, convert to uppercase
-        else {
-            processedValue = value.toUpperCase();
-        }
-        
-        setFormData(prev => ({
-            ...prev,
-            [stateKey]: processedValue
-        }));
-        
-        // Clear error for this field when user starts typing
-        if (errors[id]) {
-            setErrors(prev => ({
-                ...prev,
-                [id]: undefined
-            }));
-        }
+    const handleCustomerAdded = () => {
+        fetchCustomers(); // Refresh the list when a new customer is added
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-        
-        if (!formData.client_id) newErrors['client-id'] = "Client ID is required";
-        if (!formData.organization) newErrors['organization'] = "Organization is required";
-        if (!formData.first_name) newErrors['first-name'] = "First name is required";
-        if (!formData.middle_name) newErrors['middle-name'] = "Middle name is required";
-        if (!formData.last_name) newErrors['last-name'] = "Last name is required";
-        if (!formData.email) newErrors['email'] = "Email is required";
-        
-        // Validate phone number format
-        if (!formData.contact_number) {
-            newErrors['contact-number'] = "Contact number is required";
-        } else {
-            const phone = formData.contact_number;
-            // Check if valid Philippine format
-            if (phone.startsWith('+63')) {
-                if (phone.length !== 13) {
-                    newErrors['contact-number'] = "Invalid format. Should be +63XXXXXXXXXX (13 digits)";
-                }
-            } else if (phone.startsWith('09')) {
-                if (phone.length !== 11) {
-                    newErrors['contact-number'] = "Invalid format. Should be 09XXXXXXXXX (11 digits)";
-                }
-            } else {
-                newErrors['contact-number'] = "Must start with +63 or 09";
-            }
-        }
-        if (!formData.barangay) newErrors['brgy'] = "Barangay is required";
-        if (!formData.municipality) newErrors['municipality'] = "Municipality is required";
-        if (!formData.province) newErrors['province'] = "Province is required";
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const resetForm = () => {
-        setFormData({
-            client_id: "",
-            organization: "",
-            first_name: "",
-            middle_name: "",
-            last_name: "",
-            email: "",
-            contact_number: "",
-            barangay: "",
-            municipality: "",
-            province: "",
-        });
-        setErrors({});
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!validateForm()) {
-            toast.error("Please fill in all required fields correctly");
+    const handleDeleteCustomer = async (id, customerName) => {
+        if (!confirm(`Are you sure you want to delete ${customerName}?`)) {
             return;
         }
 
-        setIsSubmitting(true);
-
         try {
-            // Don't send password fields - walk-in clients don't have passwords
-            const response = await clientService.createClient(formData);
-            
+            const response = await customerService.deleteCustomer(id);
             if (response.success) {
-                toast.success("Walk-in Client added successfully!", {
-                    description: `${formData.first_name} ${formData.last_name} from ${formData.organization} has been added.`
+                toast.success("Customer deleted successfully!", {
+                    description: `${customerName} has been removed from the system.`
                 });
-                resetForm();
-                setIsOpen(false);
-                
-                // Call the callback to refresh the client list
-                if (onClientAdded) {
-                    onClientAdded();
-                }
+                fetchCustomers(); // Refresh the list
             }
         } catch (error) {
-            console.error("Error adding client:", error);
-            console.error("Error response:", error.response);
-            
-            if (error.response?.data?.errors) {
-                // Handle validation errors from backend
-                const backendErrors = {};
-                const errorMessages = [];
-                
-                Object.keys(error.response.data.errors).forEach(key => {
-                    const formattedKey = key.replace(/_/g, '-');
-                    backendErrors[formattedKey] = error.response.data.errors[key][0];
-                    errorMessages.push(error.response.data.errors[key][0]);
-                });
-                
-                setErrors(backendErrors);
-                
-                // Show first error in toast
-                toast.error("Validation Error", {
-                    description: errorMessages[0]
-                });
-            } else if (error.response?.data?.message) {
-                toast.error("Error", {
-                    description: error.response.data.message
-                });
-            } else if (error.message) {
-                toast.error("Network Error", {
-                    description: "Make sure the backend server is running at http://localhost:8000"
-                });
-            } else {
-                toast.error("Failed to add client. Please try again.");
-            }
-        } finally {
-            setIsSubmitting(false);
+            console.error("Error deleting customer:", error);
+            toast.error("Failed to delete customer", {
+                description: error.response?.data?.message || "Please try again"
+            });
         }
     };
 
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button className="bg-[#016146] hover:bg-[#014d38]">
-                    <CirclePlus />
-                    Add Walk-in Client
-                </Button>
-            </DialogTrigger>
+    const handleUpgradeClick = (customer) => {
+        setSelectedCustomer(customer);
+        setUpgradeDialogOpen(true);
+    };
 
-            <DialogContent
-                className="w-[90vw] !max-w-5xl sm:!max-w-5xl max-h-[90vh] overflow-y-auto"
-                onInteractOutside={(event) => event.preventDefault()}
-            >
-                <DialogHeader>
-                    <DialogTitle>Add Walk-in Client</DialogTitle>
-                    <DialogDescription>
-                        Add a new walk-in client without creating an account (no password required).
-                    </DialogDescription>
-                </DialogHeader>
+    const handleUpgradeConfirm = async () => {
+        if (!selectedCustomer) return;
+
+        setIsUpgrading(true);
+        try {
+            const response = await customerService.upgradeToClient(selectedCustomer.id);
+            if (response.success) {
+                toast.success("Customer upgraded successfully!", {
+                    description: `${selectedCustomer.first_name} ${selectedCustomer.last_name} now has a client account (${response.data.client.client_id}). An email with login credentials has been sent to ${selectedCustomer.email}`,
+                    duration: 10000,
+                });
+
+                // Show temporary password in a separate toast (backup in case email fails)
+                toast.info("Backup: Temporary Password", {
+                    description: `Password: ${response.data.temporary_password}\n\nAn email was sent to the client, but you can provide this password as backup if needed.`,
+                    duration: 15000,
+                });
+
+                setUpgradeDialogOpen(false);
+                setSelectedCustomer(null);
+                fetchCustomers(); // Refresh the list
+            }
+        } catch (error) {
+            console.error("Error upgrading customer:", error);
+            toast.error("Failed to upgrade customer", {
+                description: error.response?.data?.message || "Please try again"
+            });
+        } finally {
+            setIsUpgrading(false);
+        }
+    };
+
+    const filteredCustomers = useMemo(() => {
+        return customers.filter((customer) => {
+            const searchTerm = search.toLowerCase().trim();
+            const fullName = getUserDisplayName(customer).toLowerCase();
+            const fullAddress = `${customer.barangay}, ${customer.municipality}, ${customer.province}`.toLowerCase();
+            
+            const matchesSearch =
+                customer.customer_id.toLowerCase().includes(searchTerm) ||
+                customer.first_name.toLowerCase().includes(searchTerm) ||
+                customer.last_name.toLowerCase().includes(searchTerm) ||
+                fullName.includes(searchTerm) ||
+                (customer.organization && customer.organization.toLowerCase().includes(searchTerm)) ||
+                fullAddress.includes(searchTerm) ||
+                customer.email.toLowerCase().includes(searchTerm) ||
+                customer.contact_number.includes(searchTerm);
+            
+            // Status filter - all customers are active
+            const matchesStatus = statusFilter === "all" || statusFilter === "active";
+            
+            return matchesSearch && matchesStatus;
+        });
+    }, [customers, search, statusFilter]);
+
+    const totalPages = Math.ceil(
+        filteredCustomers.length / itemsPerPage
+    );
+
+    const paginatedCustomers = useMemo(() => {
+        const startIndex =
+            (currentPage - 1) * itemsPerPage;
+
+        const endIndex =
+            startIndex + itemsPerPage;
+
+        return filteredCustomers.slice(
+            startIndex,
+            endIndex
+        );
+    }, [filteredCustomers, currentPage]);
+
+    const handleSearch = (value) => {
+        setSearch(value);
+        setCurrentPage(1);
+    };
+
+    const handleStatusChange = (value) => {
+        setStatusFilter(value);
+        setCurrentPage(1);
+    };
+
+    const goToPage = (page) => {
+        setCurrentPage(page);
+    };
+
+    const startItem =
+        filteredCustomers.length === 0
+            ? 0
+            : (currentPage - 1) * itemsPerPage + 1;
+
+    const endItem = Math.min(
+        currentPage * itemsPerPage,
+        filteredCustomers.length
+    );
+
+
+    return (
+        <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                <div className="w-80">
+                    <InputGroup>
+                        <InputGroupInput
+                            id="search"
+                            type="search"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={(e) =>
+                                handleSearch(e.target.value)
+                            }
+                        />
+                        <InputGroupAddon>
+                            <Search />
+                        </InputGroupAddon>
+                    </InputGroup>
+                </div>
+
+                <Select value={statusFilter} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="w-52">
+                        <SelectValue placeholder="Account Status" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                        <SelectItem value="all">All Customers</SelectItem>
+                        <SelectItem value="active">Active Customers</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <AddWalkinCustomer onCustomerAdded={handleCustomerAdded} />
+        </div>
+            <div className="overflow-hidden rounded-md border">
+                <Table className="p-0">
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Customer ID</TableHead>
+                            <TableHead>Customer Name</TableHead>
+                            <TableHead>Organization</TableHead>
+                            <TableHead>Address</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Contact Number</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">Loading customers...</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedCustomers.length > 0 ? (
+                            paginatedCustomers.map((customer) => (
+                                <TableRow key={customer.id}>
+                                    <TableCell>{customer.customer_id}</TableCell>
+                                    <TableCell>
+                                        {getUserDisplayName(customer)}
+                                    </TableCell>
+                                    <TableCell>{customer.organization || '-'}</TableCell>
+                                    <TableCell>
+                                        {customer.barangay}, {customer.municipality}, {customer.province}
+                                    </TableCell>
+                                    <TableCell>{customer.email}</TableCell>
+                                    <TableCell>{customer.contact_number}</TableCell>
+                                    <TableCell>
+                                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                                            Active
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => navigate(`/customer/${customer.id}`)}
+                                                title="View Details"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleUpgradeClick(customer)}
+                                                title="Upgrade to Client Account"
+                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                                <UserPlus className="h-4 w-4 mr-1" />
+                                                Upgrade
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center h-32">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Ghost className="h-8 w-8 text-muted-foreground" />
+                                        <p className="text-sm text-muted-foreground">No customers found.</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
 
                 <Separator />
 
-                <form onSubmit={handleSubmit}>
-                    <FieldGroup className="gap-4">
-                        <Field>
-                            <FieldLabel htmlFor="client-id">Client ID</FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id="client-id"
-                                    type="text"
-                                    placeholder="CLT-0001"
-                                    value={formData.client_id}
-                                    readOnly
-                                    className="bg-gray-50 cursor-not-allowed"
-                                    required
-                                />
-                            </InputGroup>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Auto-generated client ID
-                            </p>
-                            {errors['client-id'] && (
-                                <p className="text-red-500 text-sm mt-1">{errors['client-id']}</p>
-                            )}
-                        </Field>
+                <div className="bg-white flex items-center justify-between px-4 py-3">
+                    <div className="text-sm text-muted-foreground">
+                        {filteredCustomers.length > 0
+                            ? `Showing ${startItem}-${endItem} of ${filteredCustomers.length}`
+                            : "No results"}
+                    </div>
 
-                        <Field>
-                            <FieldLabel htmlFor="organization">
-                                Organization
-                            </FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id="organization"
-                                    type="text"
-                                    placeholder="ORGANIZATION NAME"
-                                    value={formData.organization}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </InputGroup>
-                            {errors['organization'] && (
-                                <p className="text-red-500 text-sm mt-1">{errors['organization']}</p>
-                            )}
-                        </Field>
-
-                        <FieldGroup className="grid grid-cols-2 gap-4">
-                            <Field>
-                                <FieldLabel htmlFor="first-name">
-                                    First Name
-                                </FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="first-name"
-                                        type="text"
-                                        placeholder="JOHN"
-                                        value={formData.first_name}
-                                        onChange={handleInputChange}
-                                        required
+                    <div>
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (currentPage > 1) {
+                                                goToPage(
+                                                    currentPage - 1
+                                                );
+                                            }
+                                        }}
+                                        className={
+                                            currentPage === 1
+                                                ? "pointer-events-none opacity-50"
+                                                : "cursor-pointer"
+                                        }
                                     />
-                                </InputGroup>
-                                {errors['first-name'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['first-name']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="middle-name">
-                                    Middle Name
-                                </FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="middle-name"
-                                        type="text"
-                                        placeholder="JANE"
-                                        value={formData.middle_name}
-                                        onChange={handleInputChange}
-                                        required
+                                </PaginationItem>
+                                {Array.from(
+                                    { length: totalPages },
+                                    (_, index) => index + 1
+                                ).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={
+                                                currentPage === page
+                                            }
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                goToPage(page);
+                                            }}
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (
+                                                currentPage <
+                                                totalPages
+                                            ) {
+                                                goToPage(
+                                                    currentPage + 1
+                                                );
+                                            }
+                                        }}
+                                        className={
+                                            currentPage === totalPages
+                                                ? "pointer-events-none opacity-50"
+                                                : "cursor-pointer"
+                                        }
                                     />
-                                </InputGroup>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Enter "NA" if no middle name
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                </div>
+            </div>
+
+            {/* Upgrade Confirmation Dialog */}
+            <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Upgrade Customer to Client Account?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will create a client account for:
+                            <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                                <p className="font-medium text-gray-900">
+                                    {selectedCustomer && getUserDisplayName(selectedCustomer)}
                                 </p>
-                                {errors['middle-name'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['middle-name']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="last-name">
-                                    Last Name
-                                </FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="last-name"
-                                        type="text"
-                                        placeholder="DOE"
-                                        value={formData.last_name}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['last-name'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['last-name']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="email">Email</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="email"
-                                        type="email"
-                                        placeholder="john.doe@example.com"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['email'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['email']}</p>
-                                )}
-                            </Field>
-                        </FieldGroup>
-
-                        <Field>
-                            <FieldLabel htmlFor="contact-number">
-                                Contact Number
-                            </FieldLabel>
-                            <InputGroup>
-                                <InputGroupInput
-                                    id="contact-number"
-                                    type="tel"
-                                    placeholder="Mobile Number"
-                                    value={formData.contact_number}
-                                    onChange={handleInputChange}
-                                    maxLength={13}
-                                    required
-                                />
-                            </InputGroup>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Format: +63XXXXXXXXXX (13 digits) or 09XXXXXXXXX (11 digits)
-                            </p>
-                            {errors['contact-number'] && (
-                                <p className="text-red-500 text-sm mt-1">{errors['contact-number']}</p>
-                            )}
-                        </Field>
-
-                        {/* Address Selector */}
-                        <AddressSelector
-                            values={{
-                                province: formData.province,
-                                municipality: formData.municipality,
-                                barangay: formData.barangay
-                            }}
-                            onChange={({province, municipality, barangay}) => {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    province,
-                                    municipality,
-                                    barangay
-                                }));
-                                // Clear errors when changed
-                                setErrors(prev => ({
-                                    ...prev,
-                                    province: undefined,
-                                    municipality: undefined,
-                                    barangay: undefined
-                                }));
-                            }}
-                            errors={{
-                                province: errors['province'],
-                                municipality: errors['municipality'],
-                                barangay: errors['brgy']
-                            }}
-                        />
-                    </FieldGroup>
-
-                    <DialogFooter className="mt-4">
-                        <DialogClose asChild>
-                            <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={resetForm}
-                            >
-                                Close
-                            </Button>
-                        </DialogClose>
-
-                        <Button 
-                            type="submit" 
-                            className="bg-[#016146] hover:bg-[#014d38]"
-                            disabled={isSubmitting}
+                                <p className="text-sm text-gray-600">{selectedCustomer?.email}</p>
+                            </div>
+                            <div className="mt-3 space-y-1 text-sm">
+                                <p>• A temporary password will be generated</p>
+                                <p>• Customer record will be archived</p>
+                                <p>• Client can login and change password</p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isUpgrading}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleUpgradeConfirm}
+                            disabled={isUpgrading}
+                            className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {isSubmitting ? (
+                            {isUpgrading ? (
                                 <>
-                                    <Loader2 className="animate-spin" />
-                                    Adding...
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Upgrading...
                                 </>
                             ) : (
                                 <>
-                                    <CirclePlus />
-                                    Add Client
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Upgrade to Client
                                 </>
                             )}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     );
 };
 
-export default AddWalkinClient;
+export default CustomerTable;

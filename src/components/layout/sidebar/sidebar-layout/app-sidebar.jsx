@@ -63,15 +63,17 @@ export function AppSidebar({ ...props }) {
 
     // Admin-only items
     const adminOnlyItems = [
-        {
-            title: "User Management",
-            url: "#",
-            icon: Users,
-            items: [
-                { title: "Client Account", url: "/client" },
-                { title: "Staff Account", url: "/staff" },
-            ],
-        },
+        { title: "Staff Account", url: "/staff", icon: Users },
+        { title: "Client Account", url: "/client", icon: Users },
+        { title: "Customer List", url: "/customer", icon: Users },
+        { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
+        { title: "Seedling Production", url: "/seedling-production", icon: Sprout },
+    ];
+
+    // Staff-accessible items (not including Staff Account management)
+    const staffAccessibleItems = [
+        { title: "Client Account", url: "/client", icon: Users },
+        { title: "Customer List", url: "/customer", icon: Users },
         { title: "Seedling Inventory", url: "/seedling-inventory", icon: FileBox },
         { title: "Seedling Production", url: "/seedling-production", icon: Sprout },
     ];
@@ -82,13 +84,17 @@ export function AppSidebar({ ...props }) {
         { title: "Request", url: "/requests", icon: ClipboardList },
         { title: "Reports", url: "/reports", icon: ChartNoAxesCombined },
         { title: "Activity Logs", url: "/activity-logs", icon: Logs },
+    ];
+    
+    // Admin-only settings
+    const settingsItems = [
         { title: "Target Management", url: "/settings", icon: Settings },
     ];
 
     // Build navigation based on user type
     const navMain = userType === 'admin' 
-        ? [...baseNavItems, ...adminOnlyItems, ...commonItems]
-        : [...baseNavItems, ...commonItems];
+        ? [...baseNavItems, ...adminOnlyItems, ...commonItems, ...settingsItems]
+        : [...baseNavItems, ...staffAccessibleItems, ...commonItems];
 
     const handleLogout = () => {
         localStorage.removeItem('user');

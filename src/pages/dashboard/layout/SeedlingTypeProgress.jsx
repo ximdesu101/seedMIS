@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import targetService from "@/services/targetService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Sprout, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sprout, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const SeedlingTypeProgress = () => {
     const [progress, setProgress] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     useEffect(() => {
         fetchProgress();
@@ -63,6 +66,24 @@ const SeedlingTypeProgress = () => {
         return null; // Don't show if no seedling type targets set
     }
 
+    // Calculate pagination
+    const totalPages = Math.ceil(progress.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentItems = progress.slice(startIndex, endIndex);
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -76,7 +97,7 @@ const SeedlingTypeProgress = () => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
-                    {progress.map((item) => (
+                    {currentItems.map((item) => (
                         <div key={item.id} className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -111,6 +132,38 @@ const SeedlingTypeProgress = () => {
                         </div>
                     ))}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                        <p className="text-sm text-muted-foreground">
+                            Showing {startIndex + 1}-{Math.min(endIndex, progress.length)} of {progress.length} seedling types
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={goToPreviousPage}
+                                disabled={currentPage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            <span className="text-sm font-medium">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={goToNextPage}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

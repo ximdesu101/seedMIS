@@ -23,7 +23,7 @@ const actions = [
     {
         label: "Seedling Inventory",
         icon: FileBox,
-        path: "/seedling-invertory"
+        path: "/seedling-inventory"
     },
     {
         label: "Seedling Production",

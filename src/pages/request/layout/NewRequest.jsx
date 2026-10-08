@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { cn } from "cn";
 import { format } from "date-fns";
 import requestService from "@/services/requestService";
+import { getUserDisplayName } from "@/utils/nameHelper";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
@@ -67,7 +68,8 @@ const NewRequest = ({ onRequestAdded }) => {
     const [calculatedPrice, setCalculatedPrice] = useState(0);
 
     const [formData, setFormData] = useState({
-        client_id: "",
+        requester_type: "",
+        requester_id: "",
         seedling_type: "",
         quantity: "",
         purpose: "",
@@ -130,10 +132,11 @@ const NewRequest = ({ onRequestAdded }) => {
 
     const handleUserSelect = (user) => {
         setSelectedUser(user);
-        setUserSearch(`${user.first_name} ${user.middle_name ? user.middle_name + ' ' : ''}${user.last_name}`);
+        setUserSearch(`${getUserDisplayName(user)} ${user.user_type === 'client' ? `(${user.user_id})` : `[${user.user_id}]`}`);
         setFormData(prev => ({
             ...prev,
-            client_id: user.id
+            requester_type: user.user_type,
+            requester_id: user.id
         }));
         setShowResults(false);
         setSearchResults([]); // Clear search results after selection
@@ -144,10 +147,10 @@ const NewRequest = ({ onRequestAdded }) => {
         }
         
         // Clear error if exists
-        if (errors.client_id) {
+        if (errors.requester_id) {
             setErrors(prev => ({
                 ...prev,
-                client_id: undefined
+                requester_id: undefined
             }));
         }
     };
@@ -158,11 +161,13 @@ const NewRequest = ({ onRequestAdded }) => {
         setUserSearch(value);
         
         // If user is editing the search, clear the selected user
-        if (selectedUser && value !== `${selectedUser.first_name} ${selectedUser.middle_name ? selectedUser.middle_name + ' ' : ''}${selectedUser.last_name}`) {
+        const userDisplay = selectedUser ? `${getUserDisplayName(selectedUser)} ${selectedUser.user_type === 'client' ? `(${selectedUser.user_id})` : `[${selectedUser.user_id}]`}` : '';
+        if (selectedUser && value !== userDisplay) {
             setSelectedUser(null);
             setFormData(prev => ({
                 ...prev,
-                client_id: ""
+                requester_type: "",
+                requester_id: ""
             }));
         }
     };
@@ -264,7 +269,7 @@ const NewRequest = ({ onRequestAdded }) => {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.client_id) newErrors.client_id = "Please select a user";
+        if (!formData.requester_id) newErrors.requester_id = "Please select a user";
         if (!formData.seedling_type) newErrors.seedling_type = "Seedling type is required";
         if (!formData.quantity) newErrors.quantity = "Quantity is required";
         if (parseInt(formData.quantity) <= 0) newErrors.quantity = "Quantity must be greater than 0";
@@ -283,7 +288,8 @@ const NewRequest = ({ onRequestAdded }) => {
 
     const resetForm = () => {
         setFormData({
-            client_id: "",
+            requester_type: "",
+            requester_id: "",
             seedling_type: "",
             quantity: "",
             purpose: "",
@@ -315,7 +321,8 @@ const NewRequest = ({ onRequestAdded }) => {
 
             // Prepare request data
             const requestData = {
-                client_id: formData.client_id,
+                requester_type: formData.requester_type,
+                requester_id: formData.requester_id,
                 seedling_type: formData.seedling_type,
                 quantity: parseInt(formData.quantity),
                 purpose: formData.purpose,
@@ -436,20 +443,32 @@ const NewRequest = ({ onRequestAdded }) => {
                                     <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
                                         {searchResults.map((user) => (
                                             <div
-                                                key={user.id}
+                                                key={`${user.user_type}-${user.id}`}
                                                 className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
                                                 onClick={() => handleUserSelect(user)}
                                             >
-                                                <div className="flex items-center gap-2">
-                                                    <User className="h-4 w-4 text-gray-500" />
-                                                    <div>
-                                                        <p className="font-medium text-sm">
-                                                            {user.first_name} {user.middle_name ? user.middle_name + ' ' : ''}{user.last_name}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">{user.email}</p>
-                                                        {user.organization && (
-                                                            <p className="text-xs text-gray-400">{user.organization}</p>
-                                                        )}
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <User className="h-4 w-4 text-gray-500" />
+                                                        <div>
+                                                            <p className="font-medium text-sm">
+                                                                {getUserDisplayName(user)}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                                            {user.organization && (
+                                                                <p className="text-xs text-gray-400">{user.organization}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                                            user.user_type === 'client' 
+                                                                ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
+                                                                : 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20'
+                                                        }`}>
+                                                            {user.user_type === 'client' ? 'Client' : 'Customer'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">{user.user_id}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -463,60 +482,105 @@ const NewRequest = ({ onRequestAdded }) => {
                                     </div>
                                 )}
                             </div>
-                            {errors.client_id && (
+                            {errors.requester_id && (
                                 <p className="text-red-500 text-sm mt-1">
-                                    {errors.client_id}
+                                    {errors.requester_id}
                                 </p>
                             )}
                         </Field>
 
-                        {/* Selected User Display - Client Information */}
+                        {/* Selected User Display - User Information */}
                         {selectedUser && (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                                <h3 className="text-sm font-semibold text-green-900 mb-3">Client Information</h3>
+                            <div className={`p-4 border rounded-md ${
+                                selectedUser.user_type === 'client' 
+                                    ? 'bg-green-50 border-green-200'
+                                    : 'bg-blue-50 border-blue-200'
+                            }`}>
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className={`text-sm font-semibold ${
+                                        selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                    }`}>
+                                        {selectedUser.user_type === 'client' ? 'Client Information' : 'Customer Information'}
+                                    </h3>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                        selectedUser.user_type === 'client' 
+                                            ? 'bg-green-100 text-green-700 ring-1 ring-inset ring-green-600/20'
+                                            : 'bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-600/20'
+                                    }`}>
+                                        {selectedUser.user_id}
+                                    </span>
+                                </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-xs text-green-600 mb-1">Full Name</p>
-                                        <p className="text-sm font-medium text-green-900">
-                                            {selectedUser.first_name} {selectedUser.middle_name ? selectedUser.middle_name + ' ' : ''}{selectedUser.last_name}
+                                        <p className={`text-xs mb-1 ${
+                                            selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                        }`}>Full Name</p>
+                                        <p className={`text-sm font-medium ${
+                                            selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                        }`}>
+                                            {getUserDisplayName(selectedUser)}
                                         </p>
                                     </div>
                                     
                                     <div>
-                                        <p className="text-xs text-green-600 mb-1">Email Address</p>
-                                        <p className="text-sm font-medium text-green-900">{selectedUser.email}</p>
+                                        <p className={`text-xs mb-1 ${
+                                            selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                        }`}>Email Address</p>
+                                        <p className={`text-sm font-medium ${
+                                            selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                        }`}>{selectedUser.email}</p>
                                     </div>
                                     
                                     {selectedUser.organization && (
                                         <div>
-                                            <p className="text-xs text-green-600 mb-1">Organization</p>
-                                            <p className="text-sm font-medium text-green-900">{selectedUser.organization}</p>
+                                            <p className={`text-xs mb-1 ${
+                                                selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                            }`}>Organization</p>
+                                            <p className={`text-sm font-medium ${
+                                                selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                            }`}>{selectedUser.organization}</p>
                                         </div>
                                     )}
                                     
                                     {selectedUser.contact_number && (
                                         <div>
-                                            <p className="text-xs text-green-600 mb-1">Contact Number</p>
-                                            <p className="text-sm font-medium text-green-900">{selectedUser.contact_number}</p>
+                                            <p className={`text-xs mb-1 ${
+                                                selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                            }`}>Contact Number</p>
+                                            <p className={`text-sm font-medium ${
+                                                selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                            }`}>{selectedUser.contact_number}</p>
                                         </div>
                                     )}
                                     
                                     {selectedUser.barangay && (
                                         <>
                                             <div>
-                                                <p className="text-xs text-green-600 mb-1">Barangay</p>
-                                                <p className="text-sm font-medium text-green-900">{selectedUser.barangay}</p>
+                                                <p className={`text-xs mb-1 ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                                }`}>Barangay</p>
+                                                <p className={`text-sm font-medium ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                                }`}>{selectedUser.barangay}</p>
                                             </div>
                                             
                                             <div>
-                                                <p className="text-xs text-green-600 mb-1">Municipality</p>
-                                                <p className="text-sm font-medium text-green-900">{selectedUser.municipality || 'N/A'}</p>
+                                                <p className={`text-xs mb-1 ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                                }`}>Municipality</p>
+                                                <p className={`text-sm font-medium ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                                }`}>{selectedUser.municipality || 'N/A'}</p>
                                             </div>
                                             
                                             <div>
-                                                <p className="text-xs text-green-600 mb-1">Province</p>
-                                                <p className="text-sm font-medium text-green-900">{selectedUser.province || 'N/A'}</p>
+                                                <p className={`text-xs mb-1 ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-600' : 'text-blue-600'
+                                                }`}>Province</p>
+                                                <p className={`text-sm font-medium ${
+                                                    selectedUser.user_type === 'client' ? 'text-green-900' : 'text-blue-900'
+                                                }`}>{selectedUser.province || 'N/A'}</p>
                                             </div>
                                         </>
                                     )}

@@ -48,6 +48,7 @@ const TargetSettings = () => {
     const [targets, setTargets] = useState([]);
     const [availableSeedlings, setAvailableSeedlings] = useState([]);
     const [editingTarget, setEditingTarget] = useState(null);
+    const [filter, setFilter] = useState('annual'); // 'annual', 'monthly', 'seedling'
     
     // Form state
     const [annualProduction, setAnnualProduction] = useState("");
@@ -55,6 +56,10 @@ const TargetSettings = () => {
     const [seedlingTargets, setSeedlingTargets] = useState([
         { seedling_type: "", target_value: "" },
     ]);
+    
+    // Track if annual/monthly already exist
+    const [hasAnnualTarget, setHasAnnualTarget] = useState(false);
+    const [hasMonthlyTarget, setHasMonthlyTarget] = useState(false);
 
     useEffect(() => {
         fetchTargets();
@@ -81,9 +86,19 @@ const TargetSettings = () => {
                 const targetsData = response.data;
                 setTargets(targetsData);
                 
+                const currentYear = new Date().getFullYear().toString();
+                const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+                
                 // Pre-fill form with existing targets
-                const annual = targetsData.find(t => t.target_type === 'annual_production');
-                const monthly = targetsData.find(t => t.target_type === 'monthly_distribution');
+                const annual = targetsData.find(t => 
+                    t.target_type === 'annual_production' && t.period === currentYear
+                );
+                const monthly = targetsData.find(t => 
+                    t.target_type === 'monthly_distribution' && t.period === currentMonth
+                );
+                
+                setHasAnnualTarget(!!annual);
+                setHasMonthlyTarget(!!monthly);
                 
                 setAnnualProduction(annual?.target_value || "");
                 setMonthlyDistribution(monthly?.target_value || "");
@@ -117,7 +132,7 @@ const TargetSettings = () => {
             const promises = [];
 
             // Save annual production
-            if (annualProduction && parseFloat(annualProduction) > 0) {
+            if (annualProduction && parseFloat(annualProduction) > 0 && !hasAnnualTarget) {
                 promises.push(
                     targetService.saveTarget({
                         target_type: 'annual_production',
@@ -129,7 +144,7 @@ const TargetSettings = () => {
             }
 
             // Save monthly distribution
-            if (monthlyDistribution && parseFloat(monthlyDistribution) > 0) {
+            if (monthlyDistribution && parseFloat(monthlyDistribution) > 0 && !hasMonthlyTarget) {
                 promises.push(
                     targetService.saveTarget({
                         target_type: 'monthly_distribution',
@@ -248,6 +263,14 @@ const TargetSettings = () => {
         };
         return labels[type] || type;
     };
+    
+    // Filter targets based on selected filter
+    const filteredTargets = targets.filter(target => {
+        if (filter === 'annual') return target.target_type === 'annual_production';
+        if (filter === 'monthly') return target.target_type === 'monthly_distribution';
+        if (filter === 'seedling') return target.target_type === 'seedling_type';
+        return false;
+    });
 
     return (
         <div className="space-y-6">
@@ -283,15 +306,40 @@ const TargetSettings = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
+                    {/* Filter Buttons */}
+                    <div className="flex gap-2 mb-4">
+                        <Button
+                            size="sm"
+                            variant={filter === 'annual' ? 'default' : 'outline'}
+                            onClick={() => setFilter('annual')}
+                        >
+                            Annual
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={filter === 'monthly' ? 'default' : 'outline'}
+                            onClick={() => setFilter('monthly')}
+                        >
+                            Monthly
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={filter === 'seedling' ? 'default' : 'outline'}
+                            onClick={() => setFilter('seedling')}
+                        >
+                            Seedling Tagging
+                        </Button>
+                    </div>
+
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
                             <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : targets.length === 0 ? (
+                    ) : filteredTargets.length === 0 ? (
                         <div className="text-center py-8">
                             <Target className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                             <p className="text-sm text-muted-foreground">
-                                No targets set yet. Click "Manage Targets" to get started.
+                                {`No ${filter} targets found.`}
                             </p>
                         </div>
                     ) : (
@@ -299,7 +347,9 @@ const TargetSettings = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Type</TableHead>
-                                    <TableHead>Seedling Type</TableHead>
+                                    {filter === 'seedling' && (
+                                        <TableHead>Seedling Type</TableHead>
+                                    )}
                                     <TableHead>Target Value</TableHead>
                                     <TableHead>Period</TableHead>
                                     <TableHead>Status</TableHead>
@@ -307,16 +357,18 @@ const TargetSettings = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {targets.map((target) => (
+                                {filteredTargets.map((target) => (
                                     <TableRow key={target.id}>
                                         <TableCell>
                                             <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                                                 {getTargetTypeLabel(target.target_type)}
                                             </span>
                                         </TableCell>
-                                        <TableCell>
-                                            {target.seedling_type || '-'}
-                                        </TableCell>
+                                        {filter === 'seedling' && (
+                                            <TableCell>
+                                                {target.seedling_type || '-'}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="font-medium">
                                             {parseFloat(target.target_value).toLocaleString()}
                                         </TableCell>
@@ -365,65 +417,77 @@ const TargetSettings = () => {
                             Target Management
                         </DialogTitle>
                         <DialogDescription>
-                            Set production, distribution, and revenue targets. Values will update existing targets.
+                            Set production, distribution, and revenue targets.
+                            {hasAnnualTarget && hasMonthlyTarget && (
+                                <span className="block mt-2 text-amber-600">
+                                    Annual and Monthly targets are already set for this period. 
+                                    You can only set seedling type targets now.
+                                </span>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
                     <Separator />
 
                     <div className="space-y-6">
-                        {/* System-wide Targets */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">System Targets</CardTitle>
-                                <CardDescription>
-                                    Annual and monthly targets for the entire system
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <FieldGroup className="grid gap-4">
-                                    <Field>
-                                        <FieldLabel htmlFor="annual_production">
-                                            <TrendingUp className="h-4 w-4 inline mr-2" />
-                                            Annual Production (Seedlings)
-                                        </FieldLabel>
-                                        <Input
-                                            id="annual_production"
-                                            type="number"
-                                            min="0"
-                                            placeholder="e.g., 50000"
-                                            value={annualProduction}
-                                            onChange={(e) => setAnnualProduction(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                        />
-                                    </Field>
+                        {/* System-wide Targets - Only show if not yet set for current period */}
+                        {(!hasAnnualTarget || !hasMonthlyTarget) && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">System Targets</CardTitle>
+                                    <CardDescription>
+                                        Annual and monthly targets for the entire system
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <FieldGroup className="grid gap-4">
+                                        {!hasAnnualTarget && (
+                                            <Field>
+                                                <FieldLabel htmlFor="annual_production">
+                                                    <TrendingUp className="h-4 w-4 inline mr-2" />
+                                                    Annual Production (Seedlings)
+                                                </FieldLabel>
+                                                <Input
+                                                    id="annual_production"
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="e.g., 50000"
+                                                    value={annualProduction}
+                                                    onChange={(e) => setAnnualProduction(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                />
+                                            </Field>
+                                        )}
 
-                                    <Field>
-                                        <FieldLabel htmlFor="monthly_distribution">
-                                            <Target className="h-4 w-4 inline mr-2" />
-                                            Monthly Distribution (Seedlings)
-                                        </FieldLabel>
-                                        <Input
-                                            id="monthly_distribution"
-                                            type="number"
-                                            min="0"
-                                            placeholder="e.g., 5000"
-                                            value={monthlyDistribution}
-                                            onChange={(e) => setMonthlyDistribution(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                        />
-                                    </Field>
-                                </FieldGroup>
-                            </CardContent>
-                        </Card>
+                                        {!hasMonthlyTarget && (
+                                            <Field>
+                                                <FieldLabel htmlFor="monthly_distribution">
+                                                    <Target className="h-4 w-4 inline mr-2" />
+                                                    Monthly Distribution (Seedlings)
+                                                </FieldLabel>
+                                                <Input
+                                                    id="monthly_distribution"
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="e.g., 5000"
+                                                    value={monthlyDistribution}
+                                                    onChange={(e) => setMonthlyDistribution(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                />
+                                            </Field>
+                                        )}
+                                    </FieldGroup>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Seedling Type Targets */}
                         <Card>

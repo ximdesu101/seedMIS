@@ -25,16 +25,16 @@ import {
     CirclePlus,
     Loader2,
 } from "lucide-react";
-import clientService from "@/services/clientService";
+import customerService from "@/services/customerService";
 import { toast } from "sonner";
 
-const AddWalkinClient = ({ onClientAdded }) => {
+const AddWalkinCustomer = ({ onCustomerAdded }) => {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isOpen, setIsOpen] = React.useState(false);
     const [errors, setErrors] = React.useState({});
     
     const [formData, setFormData] = React.useState({
-        client_id: "",
+        customer_id: "",
         organization: "",
         first_name: "",
         middle_name: "",
@@ -46,24 +46,24 @@ const AddWalkinClient = ({ onClientAdded }) => {
         province: "",
     });
 
-    // Fetch next client ID when dialog opens
+    // Fetch next customer ID when dialog opens
     React.useEffect(() => {
         if (isOpen) {
-            fetchNextClientId();
+            fetchNextCustomerId();
         }
     }, [isOpen]);
 
-    const fetchNextClientId = async () => {
+    const fetchNextCustomerId = async () => {
         try {
-            const response = await clientService.getNextClientId();
+            const response = await customerService.getNextCustomerId();
             if (response.success) {
                 setFormData(prev => ({
                     ...prev,
-                    client_id: response.data.client_id
+                    customer_id: response.data.customer_id
                 }));
             }
         } catch (error) {
-            console.error('Error fetching client ID:', error);
+            console.error('Error fetching customer ID:', error);
         }
     };
 
@@ -72,7 +72,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
         
         // Map field IDs to state keys
         const fieldMapping = {
-            'client-id': 'client_id',
+            'customer-id': 'customer_id',
             'organization': 'organization',
             'first-name': 'first_name',
             'middle-name': 'middle_name',
@@ -153,7 +153,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
     const validateForm = () => {
         const newErrors = {};
         
-        if (!formData.client_id) newErrors['client-id'] = "Client ID is required";
+        if (!formData.customer_id) newErrors['customer-id'] = "Customer ID is required";
         if (!formData.organization) newErrors['organization'] = "Organization is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
         if (!formData.middle_name) newErrors['middle-name'] = "Middle name is required";
@@ -188,7 +188,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
 
     const resetForm = () => {
         setFormData({
-            client_id: "",
+            customer_id: "",
             organization: "",
             first_name: "",
             middle_name: "",
@@ -213,23 +213,23 @@ const AddWalkinClient = ({ onClientAdded }) => {
         setIsSubmitting(true);
 
         try {
-            // Don't send password fields - walk-in clients don't have passwords
-            const response = await clientService.createClient(formData);
+            // Don't send password fields - walk-in customers don't have passwords
+            const response = await customerService.createCustomer(formData);
             
             if (response.success) {
-                toast.success("Walk-in Client added successfully!", {
+                toast.success("Walk-in Customer added successfully!", {
                     description: `${formData.first_name} ${formData.last_name} from ${formData.organization} has been added.`
                 });
                 resetForm();
                 setIsOpen(false);
                 
-                // Call the callback to refresh the client list
-                if (onClientAdded) {
-                    onClientAdded();
+                // Call the callback to refresh the customer list
+                if (onCustomerAdded) {
+                    onCustomerAdded();
                 }
             }
         } catch (error) {
-            console.error("Error adding client:", error);
+            console.error("Error adding customer:", error);
             console.error("Error response:", error.response);
             
             if (error.response?.data?.errors) {
@@ -258,7 +258,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
                     description: "Make sure the backend server is running at http://localhost:8000"
                 });
             } else {
-                toast.error("Failed to add client. Please try again.");
+                toast.error("Failed to add customer. Please try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -270,7 +270,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
             <DialogTrigger asChild>
                 <Button className="bg-[#016146] hover:bg-[#014d38]">
                     <CirclePlus />
-                    Add Walk-in Client
+                    Add Walk-in Customer
                 </Button>
             </DialogTrigger>
 
@@ -279,9 +279,9 @@ const AddWalkinClient = ({ onClientAdded }) => {
                 onInteractOutside={(event) => event.preventDefault()}
             >
                 <DialogHeader>
-                    <DialogTitle>Add Walk-in Client</DialogTitle>
+                    <DialogTitle>Add Walk-in Customer</DialogTitle>
                     <DialogDescription>
-                        Add a new walk-in client without creating an account (no password required).
+                        Add a new walk-in customer without creating an account (no password required).
                     </DialogDescription>
                 </DialogHeader>
 
@@ -290,23 +290,23 @@ const AddWalkinClient = ({ onClientAdded }) => {
                 <form onSubmit={handleSubmit}>
                     <FieldGroup className="gap-4">
                         <Field>
-                            <FieldLabel htmlFor="client-id">Client ID</FieldLabel>
+                            <FieldLabel htmlFor="customer-id">Customer ID</FieldLabel>
                             <InputGroup>
                                 <InputGroupInput
-                                    id="client-id"
+                                    id="customer-id"
                                     type="text"
-                                    placeholder="CLT-0001"
-                                    value={formData.client_id}
+                                    placeholder="CUST-0001"
+                                    value={formData.customer_id}
                                     readOnly
                                     className="bg-gray-50 cursor-not-allowed"
                                     required
                                 />
                             </InputGroup>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Auto-generated client ID
+                                Auto-generated customer ID
                             </p>
-                            {errors['client-id'] && (
-                                <p className="text-red-500 text-sm mt-1">{errors['client-id']}</p>
+                            {errors['customer-id'] && (
+                                <p className="text-red-500 text-sm mt-1">{errors['customer-id']}</p>
                             )}
                         </Field>
 
@@ -485,7 +485,7 @@ const AddWalkinClient = ({ onClientAdded }) => {
                             ) : (
                                 <>
                                     <CirclePlus />
-                                    Add Client
+                                    Add Customer
                                 </>
                             )}
                         </Button>
@@ -496,4 +496,4 @@ const AddWalkinClient = ({ onClientAdded }) => {
     );
 };
 
-export default AddWalkinClient;
+export default AddWalkinCustomer;

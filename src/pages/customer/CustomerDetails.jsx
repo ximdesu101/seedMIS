@@ -17,15 +17,16 @@ import {
     TrendingUp,
     Package,
     Loader2,
+    UserPlus,
 } from "lucide-react";
-import clientService from "@/services/clientService";
+import customerService from "@/services/customerService";
 import requestService from "@/services/requestService";
 import { toast } from "sonner";
 
-const ClientDetails = () => {
+const CustomerDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [client, setClient] = useState(null);
+    const [customer, setCustomer] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -40,58 +41,59 @@ const ClientDetails = () => {
         rejectedCount: 0,
         cancelledCount: 0,
     });
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
     useEffect(() => {
-        fetchClientData();
+        fetchCustomerData();
     }, [id]);
 
-    const fetchClientData = async () => {
+    const fetchCustomerData = async () => {
         try {
             setLoading(true);
             
-            // Fetch client details
-            const clientResponse = await clientService.getClientById(id);
-            if (clientResponse.success) {
-                setClient(clientResponse.data);
+            // Fetch customer details
+            const customerResponse = await customerService.getCustomerById(id);
+            if (customerResponse.success) {
+                setCustomer(customerResponse.data);
             }
 
             // Fetch all requests
             const requestsResponse = await requestService.getAllRequests();
             if (requestsResponse.success) {
-                // Filter transactions for this client
-                const clientTransactions = requestsResponse.data.filter(
-                    req => req.client_id === parseInt(id)
+                // Filter transactions for this customer
+                const customerTransactions = requestsResponse.data.filter(
+                    req => req.customer_id === parseInt(id) && req.requester_type === 'customer'
                 );
                 
-                setTransactions(clientTransactions);
+                setTransactions(customerTransactions);
                 
                 // Calculate statistics
-                const totalQuantity = clientTransactions.reduce((sum, req) => sum + req.quantity, 0);
-                const totalSpent = clientTransactions.reduce((sum, req) => sum + parseFloat(req.total_price || 0), 0);
-                const pendingRequests = clientTransactions.filter(
+                const totalQuantity = customerTransactions.reduce((sum, req) => sum + req.quantity, 0);
+                const totalSpent = customerTransactions.reduce((sum, req) => sum + parseFloat(req.total_price || 0), 0);
+                const pendingRequests = customerTransactions.filter(
                     req => req.status === 'Pending' || req.status === 'Approved'
                 ).length;
                 
                 // Calculate quantity by status
-                const releasedQuantity = clientTransactions
+                const releasedQuantity = customerTransactions
                     .filter(req => req.status === 'Released')
                     .reduce((sum, req) => sum + req.quantity, 0);
                 
-                const rejectedQuantity = clientTransactions
+                const rejectedQuantity = customerTransactions
                     .filter(req => req.status === 'Rejected')
                     .reduce((sum, req) => sum + req.quantity, 0);
                 
-                const cancelledQuantity = clientTransactions
+                const cancelledQuantity = customerTransactions
                     .filter(req => req.status === 'Cancelled')
                     .reduce((sum, req) => sum + req.quantity, 0);
                 
                 // Calculate transaction count by status
-                const releasedCount = clientTransactions.filter(req => req.status === 'Released').length;
-                const rejectedCount = clientTransactions.filter(req => req.status === 'Rejected').length;
-                const cancelledCount = clientTransactions.filter(req => req.status === 'Cancelled').length;
+                const releasedCount = customerTransactions.filter(req => req.status === 'Released').length;
+                const rejectedCount = customerTransactions.filter(req => req.status === 'Rejected').length;
+                const cancelledCount = customerTransactions.filter(req => req.status === 'Cancelled').length;
                 
                 setStats({
-                    totalTransactions: clientTransactions.length,
+                    totalTransactions: customerTransactions.length,
                     totalQuantity,
                     totalSpent,
                     pendingRequests,
@@ -104,10 +106,47 @@ const ClientDetails = () => {
                 });
             }
         } catch (error) {
-            console.error('Error fetching client data:', error);
-            toast.error("Failed to load client details");
+            console.error('Error fetching customer data:', error);
+            toast.error("Failed to load customer details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUpgrade = async () => {
+        if (!customer) return;
+
+        if (!confirm(`Upgrade ${getUserDisplayName(customer)} to a client account?`)) {
+            return;
+        }
+
+        setIsUpgrading(true);
+        try {
+            const response = await customerService.upgradeToClient(customer.id);
+            if (response.success) {
+                toast.success("Customer upgraded successfully!", {
+                    description: `${customer.first_name} ${customer.last_name} now has a client account (${response.data.client.client_id}). An email with login credentials has been sent to ${customer.email}`,
+                    duration: 10000,
+                });
+
+                // Show temporary password in a separate toast (backup in case email fails)
+                toast.info("Backup: Temporary Password", {
+                    description: `Password: ${response.data.temporary_password}\n\nAn email was sent to the client, but you can provide this password as backup if needed.`,
+                    duration: 15000,
+                });
+
+                // Redirect to customer list after successful upgrade
+                setTimeout(() => {
+                    navigate('/customer');
+                }, 2000);
+            }
+        } catch (error) {
+            console.error("Error upgrading customer:", error);
+            toast.error("Failed to upgrade customer", {
+                description: error.response?.data?.message || "Please try again"
+            });
+        } finally {
+            setIsUpgrading(false);
         }
     };
 
@@ -145,28 +184,28 @@ const ClientDetails = () => {
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="flex flex-col items-center gap-2">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Loading client details...</p>
+                    <p className="text-sm text-muted-foreground">Loading customer details...</p>
                 </div>
             </div>
         );
     }
 
-    if (!client) {
+    if (!customer) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
                 <div className="text-center">
-                    <p className="text-lg font-semibold">Client not found</p>
-                    <Button onClick={() => navigate('/client')} className="mt-4">
+                    <p className="text-lg font-semibold">Customer not found</p>
+                    <Button onClick={() => navigate('/customer')} className="mt-4">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Clients
+                        Back to Customers
                     </Button>
                 </div>
             </div>
         );
     }
 
-    const fullName = getUserDisplayName(client);
-    const fullAddress = `${client.barangay}, ${client.municipality}, ${client.province}`;
+    const fullName = getUserDisplayName(customer);
+    const fullAddress = `${customer.barangay}, ${customer.municipality}, ${customer.province}`;
 
     return (
         <div className="space-y-6 p-6">
@@ -175,15 +214,36 @@ const ClientDetails = () => {
                 <div>
                     <Button 
                         variant="ghost" 
-                        onClick={() => navigate('/client')}
+                        onClick={() => navigate('/customer')}
                         className="mb-2"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Clients
+                        Back to Customers
                     </Button>
-                    <h1 className="text-3xl font-bold">Client Details</h1>
+                    <h1 className="text-3xl font-bold">Customer Details</h1>
                     <p className="text-muted-foreground">Complete information and transaction history</p>
                 </div>
+                <Button
+                    onClick={handleUpgrade}
+                    disabled={isUpgrading || customer.upgraded_to_client_id}
+                    className="bg-blue-600 hover:bg-blue-700"
+                >
+                    {isUpgrading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Upgrading...
+                        </>
+                    ) : customer.upgraded_to_client_id ? (
+                        <>
+                            Already Upgraded
+                        </>
+                    ) : (
+                        <>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Upgrade to Client
+                        </>
+                    )}
+                </Button>
             </div>
 
             {/* Statistics Cards */}
@@ -261,19 +321,19 @@ const ClientDetails = () => {
                 </Card>
             </div>
 
-            {/* Client Information */}
+            {/* Customer Information */}
             <Card>
                 <CardHeader>
                     <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Client contact and address details</CardDescription>
+                    <CardDescription>Customer contact and address details</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="flex items-start gap-3">
                             <User className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Client ID</p>
-                                <p className="text-base font-semibold">{client.client_id}</p>
+                                <p className="text-sm font-medium text-gray-500">Customer ID</p>
+                                <p className="text-base font-semibold">{customer.customer_id}</p>
                             </div>
                         </div>
 
@@ -289,7 +349,7 @@ const ClientDetails = () => {
                             <Building2 className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Organization</p>
-                                <p className="text-base font-semibold">{client.organization}</p>
+                                <p className="text-base font-semibold">{customer.organization || 'N/A'}</p>
                             </div>
                         </div>
 
@@ -297,7 +357,7 @@ const ClientDetails = () => {
                             <Mail className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Email</p>
-                                <p className="text-base font-semibold">{client.email}</p>
+                                <p className="text-base font-semibold">{customer.email}</p>
                             </div>
                         </div>
 
@@ -305,7 +365,7 @@ const ClientDetails = () => {
                             <Phone className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Contact Number</p>
-                                <p className="text-base font-semibold">{client.contact_number}</p>
+                                <p className="text-base font-semibold">{customer.contact_number}</p>
                             </div>
                         </div>
 
@@ -320,8 +380,8 @@ const ClientDetails = () => {
                         <div className="flex items-start gap-3">
                             <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Member Since</p>
-                                <p className="text-base font-semibold">{formatDate(client.created_at)}</p>
+                                <p className="text-sm font-medium text-gray-500">Added On</p>
+                                <p className="text-base font-semibold">{formatDate(customer.created_at)}</p>
                             </div>
                         </div>
 
@@ -329,7 +389,7 @@ const ClientDetails = () => {
                             <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Last Updated</p>
-                                <p className="text-base font-semibold">{formatDate(client.updated_at)}</p>
+                                <p className="text-base font-semibold">{formatDate(customer.updated_at)}</p>
                             </div>
                         </div>
                     </div>
@@ -375,7 +435,7 @@ const ClientDetails = () => {
                     ) : (
                         <div className="text-center py-8 text-muted-foreground">
                             <Receipt className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>No transactions found for this client</p>
+                            <p>No transactions found for this customer</p>
                         </div>
                     )}
                 </CardContent>
@@ -384,4 +444,4 @@ const ClientDetails = () => {
     );
 };
 
-export default ClientDetails;
+export default CustomerDetails;

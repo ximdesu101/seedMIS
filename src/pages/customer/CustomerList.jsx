@@ -1,11 +1,11 @@
-import ClientTable from "./layout/ClientTable";
+import CustomerTable from "./layout/CustomerTable";
 
-const Client = () => {
+const CustomerList = () => {
     return (
         <div className="grid gap-4">
-            <ClientTable />
+            <CustomerTable />
         </div>
     );
 };
 
-export default Client;
+export default CustomerList;

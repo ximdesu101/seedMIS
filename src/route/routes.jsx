@@ -5,6 +5,8 @@ import ProtectedRoute from "@/route/ProtectedRoute";
 import Dashboard from "@/pages/dashboard/Dashoard";
 import Client from "@/pages/client/Client";
 import ClientDetails from "@/pages/client/ClientDetails";
+import Customer from "@/pages/customer/CustomerList";
+import CustomerDetails from "@/pages/customer/CustomerDetails";
 import SeedlingInventory from "@/pages/inventory/SeedlingInventory";
 import SeedlingProduction from "@/pages/production/SeedlingProduction";
 import ProductionHistory from "@/pages/production/ProductionHistory";
@@ -35,6 +37,8 @@ export const router = createBrowserRouter([
             { path: "dashboard", element: <Dashboard/> },
             { path: "client", element: <Client/> },
             { path: "client/:id", element: <ClientDetails/> },
+            { path: "customer", element: <Customer/> },
+            { path: "customer/:id", element: <CustomerDetails/> },
             { path: "seedling-inventory", element: <SeedlingInventory/> },
             { path: "seedling-production", element: <SeedlingProduction/> },
             { path: "production-history", element: <ProductionHistory/> },

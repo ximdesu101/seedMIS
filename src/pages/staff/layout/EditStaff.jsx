@@ -324,7 +324,7 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
 
                             <Field>
                                 <FieldLabel htmlFor="middle-name">
-                                    Middle Name <span className="text-gray-400 text-sm">(Optional)</span>
+                                    Middle Name
                                 </FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -464,66 +464,6 @@ const EditStaff = ({ staff, onStaffUpdated }) => {
                             )}
                         </Field>
 
-                        <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field>
-                                <FieldLabel htmlFor="password">
-                                    Password <span className="text-gray-400 text-sm">(Leave empty to keep current)</span>
-                                </FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="password"
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                    />
-                                    <InputGroupAddon align="end">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword((value) => !value)}
-                                            aria-label={showPassword ? "Hide password" : "Show password"}
-                                        >
-                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </InputGroupAddon>
-                                </InputGroup>
-                                {errors['password'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['password']}</p>
-                                )}
-                            </Field>
-
-                            <Field>
-                                <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="confirm-password"
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        value={formData.password_confirmation}
-                                        onChange={handleInputChange}
-                                    />
-                                    <InputGroupAddon align="end">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowConfirmPassword((value) => !value)}
-                                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                                        >
-                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </InputGroupAddon>
-                                </InputGroup>
-                                {errors['confirm-password'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['confirm-password']}</p>
-                                )}
-                            </Field>
-                        </FieldGroup>
-
-                        {/* Password Strength Indicator */}
-                        {formData.password && (
-                            <div className="p-4 bg-gray-50 rounded-md border">
-                                <PasswordStrength password={formData.password} />
-                            </div>
-                        )}
                     </FieldGroup>
 
                     <DialogFooter className="mt-4">

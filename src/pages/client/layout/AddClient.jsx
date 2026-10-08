@@ -382,9 +382,6 @@ const AddClient = ({ onClientAdded }) => {
                                         required
                                     />
                                 </InputGroup>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Enter "NA" if no middle name
-                                </p>
                                 {errors['middle-name'] && (
                                     <p className="text-red-500 text-sm mt-1">{errors['middle-name']}</p>
                                 )}
