@@ -39,17 +39,16 @@ const RequestDetails = () => {
         try {
             setLoading(true);
             
-            // Fetch request details
+            // Fetch request details (includes client or customer data)
             const requestResponse = await requestService.getRequestById(id);
             if (requestResponse.success) {
                 setRequest(requestResponse.data);
                 
-                // Fetch client details if client_id exists
-                if (requestResponse.data.client_id) {
-                    const clientResponse = await clientService.getClientById(requestResponse.data.client_id);
-                    if (clientResponse.success) {
-                        setClient(clientResponse.data);
-                    }
+                // Set client from the request data (could be client or customer)
+                if (requestResponse.data.requester_type === 'client' && requestResponse.data.client) {
+                    setClient(requestResponse.data.client);
+                } else if (requestResponse.data.requester_type === 'customer' && requestResponse.data.customer) {
+                    setClient(requestResponse.data.customer);
                 }
             }
         } catch (error) {
