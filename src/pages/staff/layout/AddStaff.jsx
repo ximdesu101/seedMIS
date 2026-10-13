@@ -294,7 +294,7 @@ const AddStaff = ({ onStaffAdded }) => {
                 });
             } else if (error.message) {
                 toast.error("Network Error", {
-                    description: "Make sure the backend server is running at http://localhost:8000"
+                    description: "Unable to connect to the server. Please check your connection."
                 });
             } else {
                 toast.error("Failed to add staff. Please try again.");

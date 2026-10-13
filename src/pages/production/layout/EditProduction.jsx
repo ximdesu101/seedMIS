@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
+import { getImageUrl } from "@/utils/apiConfig";
 import {
     Popover,
     PopoverContent,
@@ -52,7 +53,7 @@ const EditProduction = ({ production, onUpdate }) => {
     const [dateSown, setDateSown] = useState(production.date_sown ? new Date(production.date_sown) : undefined);
     const [expectedReadyDate, setExpectedReadyDate] = useState(production.expected_ready ? new Date(production.expected_ready) : undefined);
     const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(production.image_url ? `http://localhost:8000/${production.image_url}` : null);
+    const [imagePreview, setImagePreview] = useState(production.image_url ? getImageUrl(production.image_url) : null);
 
     const [formData, setFormData] = useState({
         seedling_type: production.seedling_type || '',
@@ -98,7 +99,7 @@ const EditProduction = ({ production, onUpdate }) => {
 
     const handleRemoveImage = () => {
         setImageFile(null);
-        setImagePreview(production.image_url ? `http://localhost:8000/${production.image_url}` : null);
+        setImagePreview(production.image_url ? getImageUrl(production.image_url) : null);
         // Clear the file input
         const fileInput = document.getElementById('seedling-image');
         if (fileInput) fileInput.value = '';

@@ -76,7 +76,7 @@ const CustomerTable = () => {
         } catch (error) {
             console.error("Error fetching customers:", error);
             toast.error("Failed to load customers", {
-                description: "Please make sure the backend server is running"
+                description: "Unable to connect to the server. Please check your connection."
             });
         } finally {
             setLoading(false);

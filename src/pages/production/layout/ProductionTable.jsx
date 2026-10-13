@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import productionService from "@/services/productionService";
 import inventoryService from "@/services/inventoryService";
+import { getImageUrl } from "@/utils/apiConfig";
 import {
     Table,
     TableBody,
@@ -245,7 +246,7 @@ const ProductionTable = () => {
                                             <div className="flex-shrink-0">
                                                 {batch.image_url ? (
                                                     <img
-                                                        src={`http://localhost:8000/${batch.image_url}`}
+                                                        src={getImageUrl(batch.image_url)}
                                                         alt={batch.seedling_type}
                                                         className="w-20 h-24 object-cover rounded-md border"
                                                         onError={(e) => {

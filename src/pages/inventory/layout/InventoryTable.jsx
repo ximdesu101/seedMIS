@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import inventoryService from "@/services/inventoryService";
+import { getImageUrl } from "@/utils/apiConfig";
 import {
     Table,
     TableBody,
@@ -179,7 +180,7 @@ const InventoryTable = () => {
                                                 <div className="flex-shrink-0">
                                                     {item.image_url ? (
                                                         <img
-                                                            src={`http://localhost:8000/${item.image_url}`}
+                                                            src={getImageUrl(item.image_url)}
                                                             alt={item.seedling_type}
                                                             className="w-20 h-24 object-cover rounded-md border"
                                                             onError={(e) => {
