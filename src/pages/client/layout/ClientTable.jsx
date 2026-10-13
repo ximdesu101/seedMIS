@@ -233,7 +233,7 @@ const ClientTable = () => {
                                     </TableCell>
                                     <TableCell>{client.organization}</TableCell>
                                     <TableCell>
-                                        {client.barangay}, {client.municipality}, {client.province}
+                                        {client.purok ? `${client.purok}, ` : ''}{client.barangay}, {client.municipality}, {client.province}
                                     </TableCell>
                                     <TableCell>{client.email}</TableCell>
                                     <TableCell>{client.contact_number}</TableCell>

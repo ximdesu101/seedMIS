@@ -231,7 +231,7 @@ const StaffTable = () => {
                                     </TableCell>
                                     <TableCell>{employee.position}</TableCell>
                                     <TableCell>
-                                        {employee.barangay}, {employee.municipality}, {employee.province}
+                                        {employee.purok ? `${employee.purok}, ` : ''}{employee.barangay}, {employee.municipality}, {employee.province}
                                     </TableCell>
                                     <TableCell>{employee.email}</TableCell>
                                     <TableCell>{employee.contact_number}</TableCell>

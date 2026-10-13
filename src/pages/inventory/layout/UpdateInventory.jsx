@@ -30,12 +30,14 @@ import {
 } from "@/components/ui/select";
 import { Pencil, Sprout } from "lucide-react";
 import inventoryService from "@/services/inventoryService";
+import { toast } from "sonner";
 
 const UpdateInventory = ({ inventory, onUpdate }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [formData, setFormData] = useState({
+        seedling_type: inventory.seedling_type || '',
         price_per_unit: inventory.price_per_unit || 0,
         total_quantity: inventory.total_quantity || 0,
         status: inventory.status || 'Available',
@@ -43,9 +45,13 @@ const UpdateInventory = ({ inventory, onUpdate }) => {
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
+        
+        // Auto capitalize seedling_type
+        const processedValue = id === 'seedling_type' ? value.toUpperCase() : value;
+        
         setFormData(prev => ({
             ...prev,
-            [id]: value
+            [id]: processedValue
         }));
     };
 
@@ -74,7 +80,9 @@ const UpdateInventory = ({ inventory, onUpdate }) => {
             const response = await inventoryService.updateInventory(inventory.id, updateData);
 
             if (response.success) {
-                alert('Inventory updated successfully!');
+                toast.success('Inventory updated successfully!', {
+                    description: `${formData.seedling_type} has been updated.`
+                });
                 setDialogOpen(false);
                 if (onUpdate) {
                     onUpdate();
@@ -82,13 +90,23 @@ const UpdateInventory = ({ inventory, onUpdate }) => {
             }
         } catch (error) {
             console.error('Error updating inventory:', error);
-            if (error.response && error.response.data) {
-                const errorMessage = error.response.data.errors 
-                    ? Object.values(error.response.data.errors).flat().join('\n')
-                    : error.response.data.message;
-                alert(`Error: ${errorMessage}`);
+
+            if (error.response?.data?.errors) {
+                // Handle validation errors from backend
+                const errorMessages = Object.values(error.response.data.errors).flat();
+                toast.error('Validation Error', {
+                    description: errorMessages[0]
+                });
+            } else if (error.response?.data?.message) {
+                toast.error('Error', {
+                    description: error.response.data.message
+                });
+            } else if (error.message) {
+                toast.error('Network Error', {
+                    description: 'Unable to update inventory. Please try again.'
+                });
             } else {
-                alert('Failed to update inventory. Please try again.');
+                toast.error('Failed to update inventory. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
@@ -104,24 +122,35 @@ const UpdateInventory = ({ inventory, onUpdate }) => {
                 </Button>
             </DialogTrigger>
             <DialogContent 
-                className="w-[90vw] !max-w-xl sm:!max-w-xl max-h-[90vh] flex flex-col gap-0" 
-                onInteractOutside={(e) => e.preventDefault()}
+                className="w-[90vw] !max-w-xl sm:!max-w-xl max-h-[90vh] flex flex-col gap-0"
             >
                 <form onSubmit={handleSubmit} className="flex flex-col h-full">
                     <DialogHeader className="px-6 pt-6 pb-4">
                         <DialogTitle>Update Inventory</DialogTitle>
                         <DialogDescription>
-                            Update price, quantity, and status for {inventory.seedling_type}
+                            Update details for {inventory.seedling_type}
                         </DialogDescription>
                     </DialogHeader>
                     <Separator />
                     <div className="overflow-y-auto flex-1 px-6 py-4 max-h-[60vh]">
                         <FieldGroup className="space-y-4">
                             <Field>
-                                <FieldLabel>Seedling Type</FieldLabel>
-                                <div className="px-3 py-2 bg-muted rounded-md text-sm">
-                                    {inventory.seedling_type} ({inventory.classification})
-                                </div>
+                                <FieldLabel htmlFor="seedling_type">Seedling Type *</FieldLabel>
+                                <InputGroup>
+                                    <InputGroupInput
+                                        id="seedling_type"
+                                        type="text"
+                                        placeholder="Enter seedling type"
+                                        value={formData.seedling_type}
+                                        onChange={handleInputChange}
+                                        style={{ textTransform: 'uppercase' }}
+                                        required
+                                    />
+                                    <InputGroupAddon><Sprout /></InputGroupAddon>
+                                </InputGroup>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Classification: {inventory.classification} | Current: {inventory.seedling_type}
+                                </p>
                             </Field>
 
                             <Field>
@@ -194,7 +223,7 @@ const UpdateInventory = ({ inventory, onUpdate }) => {
 
                             <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                                 <p className="text-xs text-blue-800">
-                                    <strong>Note:</strong> Update the status to control inventory availability. "Not Available" prevents distribution.
+                                    <strong>Note:</strong> Updating seedling type will automatically reflect in all related requests. Status controls inventory availability.
                                 </p>
                             </div>
                         </FieldGroup>

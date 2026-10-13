@@ -205,7 +205,9 @@ const CustomerDetails = () => {
     }
 
     const fullName = getUserDisplayName(customer);
-    const fullAddress = `${customer.barangay}, ${customer.municipality}, ${customer.province}`;
+    const fullAddress = customer.purok 
+        ? `${customer.purok}, ${customer.barangay}, ${customer.municipality}, ${customer.province}`
+        : `${customer.barangay}, ${customer.municipality}, ${customer.province}`;
 
     return (
         <div className="space-y-6 p-6">
@@ -376,6 +378,16 @@ const CustomerDetails = () => {
                                 <p className="text-base font-semibold">{fullAddress}</p>
                             </div>
                         </div>
+
+                        {customer.region && (
+                            <div className="flex items-start gap-3">
+                                <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Region</p>
+                                    <p className="text-base font-semibold">{customer.region}</p>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex items-start gap-3">
                             <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />

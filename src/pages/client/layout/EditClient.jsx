@@ -24,6 +24,13 @@ import {
     InputGroupInput,
 } from "@/components/ui/input-group";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Pencil,
     Eye,
     EyeOff,
@@ -45,11 +52,14 @@ const EditClient = ({ client, onClientUpdated }) => {
         first_name: "",
         middle_name: "",
         last_name: "",
+        suffix: "",
         email: "",
         contact_number: "",
+        purok: "",
         barangay: "",
         municipality: "",
         province: "",
+        region: "",
         status: "",
         password: "",
         password_confirmation: "",
@@ -64,11 +74,14 @@ const EditClient = ({ client, onClientUpdated }) => {
                 first_name: client.first_name || "",
                 middle_name: client.middle_name || "",
                 last_name: client.last_name || "",
+                suffix: client.suffix || "",
                 email: client.email || "",
                 contact_number: client.contact_number || "",
+                purok: client.purok || "",
                 barangay: client.barangay || "",
                 municipality: client.municipality || "",
                 province: client.province || "",
+                region: client.region || "",
                 status: client.status || "Active",
                 password: "",
                 password_confirmation: "",
@@ -85,11 +98,14 @@ const EditClient = ({ client, onClientUpdated }) => {
             'first-name': 'first_name',
             'middle-name': 'middle_name',
             'last-name': 'last_name',
+            'suffix': 'suffix',
             'email': 'email',
             'contact-number': 'contact_number',
+            'purok': 'purok',
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
+            'region': 'region',
             'status': 'status',
             'password': 'password',
             'confirm-password': 'password_confirmation'
@@ -124,7 +140,10 @@ const EditClient = ({ client, onClientUpdated }) => {
             }
             
             processedValue = cleaned;
-        } 
+        }
+        else if (id === 'purok') {
+            processedValue = value.toUpperCase();
+        }
         else if (id === 'password' || id === 'confirm-password' || id === 'email' || id === 'status') {
             // Don't uppercase password, email, or status fields
             processedValue = value;
@@ -374,6 +393,37 @@ const EditClient = ({ client, onClientUpdated }) => {
                             </Field>
 
                             <Field>
+                                <FieldLabel htmlFor="suffix">
+                                    Suffix (Optional)
+                                </FieldLabel>
+                                <Select
+                                    value={formData.suffix}
+                                    onValueChange={(value) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            suffix: value === "none" ? "" : value
+                                        }));
+                                    }}
+                                >
+                                    <SelectTrigger id="suffix">
+                                        <SelectValue placeholder="Select suffix" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="Jr.">Jr.</SelectItem>
+                                        <SelectItem value="Sr.">Sr.</SelectItem>
+                                        <SelectItem value="II">II</SelectItem>
+                                        <SelectItem value="III">III</SelectItem>
+                                        <SelectItem value="IV">IV</SelectItem>
+                                        <SelectItem value="V">V</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Select name suffix if applicable
+                                </p>
+                            </Field>
+
+                            <Field>
                                 <FieldLabel htmlFor="email">Email</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -417,30 +467,52 @@ const EditClient = ({ client, onClientUpdated }) => {
                         {/* Address Selector */}
                         <AddressSelector
                             values={{
+                                region: formData.region,
                                 province: formData.province,
                                 municipality: formData.municipality,
                                 barangay: formData.barangay
                             }}
-                            onChange={({province, municipality, barangay}) => {
+                            onChange={({region, province, municipality, barangay}) => {
                                 setFormData(prev => ({
                                     ...prev,
+                                    region,
                                     province,
                                     municipality,
                                     barangay
                                 }));
                                 setErrors(prev => ({
                                     ...prev,
+                                    region: undefined,
                                     province: undefined,
                                     municipality: undefined,
                                     barangay: undefined
                                 }));
                             }}
                             errors={{
+                                region: errors['region'],
                                 province: errors['province'],
                                 municipality: errors['municipality'],
                                 barangay: errors['brgy']
                             }}
                         />
+
+                        <Field>
+                            <FieldLabel htmlFor="purok">
+                                Purok/Street (Optional)
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupInput
+                                    id="purok"
+                                    type="text"
+                                    placeholder="PUROK 1 or STREET NAME"
+                                    value={formData.purok}
+                                    onChange={handleInputChange}
+                                />
+                            </InputGroup>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Enter purok or street address
+                            </p>
+                        </Field>
 
                         {/* Status Field */}
                         <Field>

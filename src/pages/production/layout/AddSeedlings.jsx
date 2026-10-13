@@ -89,9 +89,13 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
+        
+        // Auto capitalize seedling_type
+        const processedValue = id === 'seedling_type' ? value.toUpperCase() : value;
+        
         setFormData(prev => ({
             ...prev,
-            [id]: value
+            [id]: processedValue
         }));
     };
 
@@ -295,6 +299,7 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
                                             placeholder="Mahogany"
                                             value={formData.seedling_type}
                                             onChange={handleInputChange}
+                                            style={{ textTransform: 'uppercase' }}
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>

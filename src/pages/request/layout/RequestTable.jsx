@@ -369,6 +369,7 @@ const RequestTable = () => {
                             <TableHead>Total Price</TableHead>
                             <TableHead>Purpose</TableHead>
                             <TableHead>Requested Date</TableHead>
+                            <TableHead>Source</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">
                                 Action
@@ -379,7 +380,7 @@ const RequestTable = () => {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={9} className="text-center">
+                                <TableCell colSpan={10} className="text-center">
                                     Loading...
                                 </TableCell>
                             </TableRow>
@@ -413,6 +414,16 @@ const RequestTable = () => {
 
                                     <TableCell>
                                         {request.requestedDate}
+                                    </TableCell>
+
+                                    <TableCell>
+                                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                            request.request_source === 'online' 
+                                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                                : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                        }`}>
+                                            {request.request_source === 'online' ? 'Online' : 'Walk-in'}
+                                        </span>
                                     </TableCell>
 
                                     <TableCell>
@@ -488,7 +499,7 @@ const RequestTable = () => {
                         ) : (
                             <TableRow>
                                 <TableCell
-                                    colSpan={9}
+                                    colSpan={10}
                                     className="text-center"
                                 >
                                     No seedling requests found.

@@ -23,14 +23,7 @@ const LoginForm = () => {
         password: "",
     });
 
-    useEffect(() => {
-        const user = localStorage.getItem('user');
-        const userType = localStorage.getItem('userType');
-        
-        if (user && userType) {
-            navigate('/dashboard');
-        }
-    }, [navigate]);
+    // Removed auto-redirect to prevent bypassing login when localStorage has stale data
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;

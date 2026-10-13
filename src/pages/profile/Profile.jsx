@@ -4,6 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordStrength } from "@/components/ui/password-strength";
+import { AddressSelector } from "@/components/ui/address-selector";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Dialog,
     DialogClose,
@@ -58,11 +66,14 @@ const Profile = () => {
         first_name: '',
         middle_name: '',
         last_name: '',
+        suffix: '',
         position: '',
         contact_number: '',
+        purok: '',
         barangay: '',
         municipality: '',
         province: '',
+        region: '',
     });
     
     const [passwordForm, setPasswordForm] = useState({
@@ -109,11 +120,14 @@ const Profile = () => {
                         first_name: '',
                         middle_name: '',
                         last_name: '',
+                        suffix: '',
                         position: '',
                         contact_number: '',
+                        purok: '',
                         barangay: '',
                         municipality: '',
                         province: '',
+                        region: '',
                     });
                 } else {
                     setProfileForm({
@@ -122,11 +136,14 @@ const Profile = () => {
                         first_name: profileData.first_name || '',
                         middle_name: profileData.middle_name || '',
                         last_name: profileData.last_name || '',
+                        suffix: profileData.suffix || '',
                         position: profileData.position || '',
                         contact_number: profileData.contact_number || '',
+                        purok: profileData.purok || '',
                         barangay: profileData.barangay || '',
                         municipality: profileData.municipality || '',
                         province: profileData.province || '',
+                        region: profileData.region || '',
                     });
                 }
             }
@@ -148,7 +165,11 @@ const Profile = () => {
         // For contact number, only allow numbers
         if (id === 'contact_number') {
             processedValue = value.replace(/\D/g, '');
-        } 
+        }
+        // For purok, convert to uppercase
+        else if (id === 'purok') {
+            processedValue = value.toUpperCase();
+        }
         // For email, keep as is (case-sensitive)
         else if (id === 'email') {
             processedValue = value;
@@ -182,12 +203,15 @@ const Profile = () => {
                     first_name: profileForm.first_name,
                     middle_name: profileForm.middle_name,
                     last_name: profileForm.last_name,
+                    suffix: profileForm.suffix,
                     email: profileForm.email,
                     position: profileForm.position,
                     contact_number: profileForm.contact_number,
+                    purok: profileForm.purok,
                     barangay: profileForm.barangay,
                     municipality: profileForm.municipality,
                     province: profileForm.province,
+                    region: profileForm.region,
                 };
             
             const response = await authService.updateProfile(user.id, user.user_type, updateData);
@@ -225,11 +249,14 @@ const Profile = () => {
                 first_name: '',
                 middle_name: '',
                 last_name: '',
+                suffix: '',
                 position: '',
                 contact_number: '',
+                purok: '',
                 barangay: '',
                 municipality: '',
                 province: '',
+                region: '',
             });
         } else {
             setProfileForm({
@@ -238,11 +265,14 @@ const Profile = () => {
                 first_name: user.first_name || '',
                 middle_name: user.middle_name || '',
                 last_name: user.last_name || '',
+                suffix: user.suffix || '',
                 position: user.position || '',
                 contact_number: user.contact_number || '',
+                purok: user.purok || '',
                 barangay: user.barangay || '',
                 municipality: user.municipality || '',
                 province: user.province || '',
+                region: user.region || '',
             });
         }
         setIsEditDialogOpen(false);
@@ -257,11 +287,14 @@ const Profile = () => {
                 first_name: '',
                 middle_name: '',
                 last_name: '',
+                suffix: '',
                 position: '',
                 contact_number: '',
+                purok: '',
                 barangay: '',
                 municipality: '',
                 province: '',
+                region: '',
             });
         } else {
             setProfileForm({
@@ -270,11 +303,14 @@ const Profile = () => {
                 first_name: user.first_name || '',
                 middle_name: user.middle_name || '',
                 last_name: user.last_name || '',
+                suffix: user.suffix || '',
                 position: user.position || '',
                 contact_number: user.contact_number || '',
+                purok: user.purok || '',
                 barangay: user.barangay || '',
                 municipality: user.municipality || '',
                 province: user.province || '',
+                region: user.region || '',
             });
         }
         setIsEditDialogOpen(true);
@@ -446,7 +482,12 @@ const Profile = () => {
                                 {/* User Info */}
                                 <div className="flex-1 space-y-4">
                                     <div>
-                                        <h2 className="text-2xl font-bold">{user.name}</h2>
+                                        <h2 className="text-2xl font-bold">
+                                            {user.user_type === 'staff' 
+                                                ? `${user.first_name} ${user.middle_name ? user.middle_name + ' ' : ''}${user.last_name}${user.suffix ? ' ' + user.suffix : ''}`
+                                                : user.name
+                                            }
+                                        </h2>
                                         <p className="text-muted-foreground">{user.email}</p>
                                     </div>
 
@@ -499,12 +540,20 @@ const Profile = () => {
                                             </div>
                                         )}
 
+                                        {user.user_type === 'staff' && user.region && (
+                                            <div className="flex items-center gap-2 text-sm col-span-2">
+                                                <MapPin className="h-4 w-4 text-gray-500" />
+                                                <span className="text-gray-600">Region:</span>
+                                                <span className="font-semibold">{user.region}</span>
+                                            </div>
+                                        )}
+
                                         {(user.barangay || user.municipality || user.province) && (
                                             <div className="flex items-center gap-2 text-sm col-span-2">
                                                 <MapPin className="h-4 w-4 text-gray-500" />
                                                 <span className="text-gray-600">Address:</span>
                                                 <span className="font-semibold">
-                                                    {[user.barangay, user.municipality, user.province].filter(Boolean).join(', ')}
+                                                    {[user.purok, user.barangay, user.municipality, user.province].filter(Boolean).join(', ')}
                                                 </span>
                                             </div>
                                         )}
@@ -599,19 +648,52 @@ const Profile = () => {
                                             </Field>
                                         </FieldGroup>
 
-                                        <Field>
-                                            <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
-                                            <InputGroup>
-                                                <InputGroupInput
-                                                    id="last_name"
-                                                    type="text"
-                                                    placeholder="DOE"
-                                                    value={profileForm.last_name}
-                                                    onChange={handleProfileInputChange}
-                                                    required
-                                                />
-                                            </InputGroup>
-                                        </Field>
+                                        <FieldGroup className="grid grid-cols-2 gap-4">
+                                            <Field>
+                                                <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
+                                                <InputGroup>
+                                                    <InputGroupInput
+                                                        id="last_name"
+                                                        type="text"
+                                                        placeholder="DOE"
+                                                        value={profileForm.last_name}
+                                                        onChange={handleProfileInputChange}
+                                                        required
+                                                    />
+                                                </InputGroup>
+                                            </Field>
+
+                                            <Field>
+                                                <FieldLabel htmlFor="suffix">
+                                                    Suffix (Optional)
+                                                </FieldLabel>
+                                                <Select
+                                                    value={profileForm.suffix}
+                                                    onValueChange={(value) => {
+                                                        setProfileForm(prev => ({
+                                                            ...prev,
+                                                            suffix: value === "none" ? "" : value
+                                                        }));
+                                                    }}
+                                                >
+                                                    <SelectTrigger id="suffix">
+                                                        <SelectValue placeholder="Select suffix" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">None</SelectItem>
+                                                        <SelectItem value="Jr.">Jr.</SelectItem>
+                                                        <SelectItem value="Sr.">Sr.</SelectItem>
+                                                        <SelectItem value="II">II</SelectItem>
+                                                        <SelectItem value="III">III</SelectItem>
+                                                        <SelectItem value="IV">IV</SelectItem>
+                                                        <SelectItem value="V">V</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Select name suffix if applicable
+                                                </p>
+                                            </Field>
+                                        </FieldGroup>
 
                                         <Field>
                                             <FieldLabel htmlFor="email">Email Address</FieldLabel>
@@ -684,49 +766,41 @@ const Profile = () => {
                                             <p className="text-xs text-muted-foreground">Complete address details</p>
                                         </div>
 
-                                        <FieldGroup className="grid grid-cols-3 gap-4">
-                                            <Field>
-                                                <FieldLabel htmlFor="barangay">Barangay</FieldLabel>
-                                                <InputGroup>
-                                                    <InputGroupInput
-                                                        id="barangay"
-                                                        type="text"
-                                                        placeholder="BARANGAY"
-                                                        value={profileForm.barangay}
-                                                        onChange={handleProfileInputChange}
-                                                        required
-                                                    />
-                                                </InputGroup>
-                                            </Field>
+                                        <AddressSelector
+                                            values={{
+                                                region: profileForm.region,
+                                                province: profileForm.province,
+                                                municipality: profileForm.municipality,
+                                                barangay: profileForm.barangay
+                                            }}
+                                            onChange={({region, province, municipality, barangay}) => {
+                                                setProfileForm(prev => ({
+                                                    ...prev,
+                                                    region,
+                                                    province,
+                                                    municipality,
+                                                    barangay
+                                                }));
+                                            }}
+                                        />
 
-                                            <Field>
-                                                <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
-                                                <InputGroup>
-                                                    <InputGroupInput
-                                                        id="municipality"
-                                                        type="text"
-                                                        placeholder="MUNICIPALITY"
-                                                        value={profileForm.municipality}
-                                                        onChange={handleProfileInputChange}
-                                                        required
-                                                    />
-                                                </InputGroup>
-                                            </Field>
-
-                                            <Field>
-                                                <FieldLabel htmlFor="province">Province</FieldLabel>
-                                                <InputGroup>
-                                                    <InputGroupInput
-                                                        id="province"
-                                                        type="text"
-                                                        placeholder="PROVINCE"
-                                                        value={profileForm.province}
-                                                        onChange={handleProfileInputChange}
-                                                        required
-                                                    />
-                                                </InputGroup>
-                                            </Field>
-                                        </FieldGroup>
+                                        <Field>
+                                            <FieldLabel htmlFor="purok">
+                                                Purok/Street (Optional)
+                                            </FieldLabel>
+                                            <InputGroup>
+                                                <InputGroupInput
+                                                    id="purok"
+                                                    type="text"
+                                                    placeholder="PUROK 1 or STREET NAME"
+                                                    value={profileForm.purok}
+                                                    onChange={handleProfileInputChange}
+                                                />
+                                            </InputGroup>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Enter purok or street address
+                                            </p>
+                                        </Field>
                                     </FieldGroup>
                                 )}
                             </div>

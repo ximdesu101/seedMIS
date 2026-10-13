@@ -48,6 +48,7 @@ import productionService from "@/services/productionService";
 const EditProduction = ({ production, onUpdate }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSelectingFile, setIsSelectingFile] = useState(false);
     const [dateSown, setDateSown] = useState(production.date_sown ? new Date(production.date_sown) : undefined);
     const [expectedReadyDate, setExpectedReadyDate] = useState(production.expected_ready ? new Date(production.expected_ready) : undefined);
     const [imageFile, setImageFile] = useState(null);
@@ -61,9 +62,13 @@ const EditProduction = ({ production, onUpdate }) => {
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
+        
+        // Auto capitalize seedling_type
+        const processedValue = id === 'seedling_type' ? value.toUpperCase() : value;
+        
         setFormData(prev => ({
             ...prev,
-            [id]: value
+            [id]: processedValue
         }));
     };
 
@@ -76,11 +81,16 @@ const EditProduction = ({ production, onUpdate }) => {
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
+        console.log('File selected:', file?.name);
+        
+        setIsSelectingFile(false);
+        
         if (file) {
             setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result);
+                console.log('Image preview set');
             };
             reader.readAsDataURL(file);
         }
@@ -89,6 +99,13 @@ const EditProduction = ({ production, onUpdate }) => {
     const handleRemoveImage = () => {
         setImageFile(null);
         setImagePreview(production.image_url ? `http://localhost:8000/${production.image_url}` : null);
+        // Clear the file input
+        const fileInput = document.getElementById('seedling-image');
+        if (fileInput) fileInput.value = '';
+    };
+
+    const handleFileInputClick = () => {
+        setIsSelectingFile(true);
     };
 
     const handleSubmit = async (e) => {
@@ -134,14 +151,40 @@ const EditProduction = ({ production, onUpdate }) => {
     };
 
     return (
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog 
+            open={dialogOpen} 
+            onOpenChange={(open) => {
+                // Prevent closing when selecting file
+                if (!open && isSelectingFile) {
+                    return;
+                }
+                setDialogOpen(open);
+            }}
+        >
             <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit Batch Info
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] !max-w-3xl sm:!max-w-3xl max-h-[90vh] flex flex-col gap-0" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogContent 
+                className="w-[90vw] !max-w-3xl sm:!max-w-3xl max-h-[90vh] flex flex-col gap-0"
+                onPointerDownOutside={(e) => {
+                    if (isSelectingFile) {
+                        e.preventDefault();
+                    }
+                }}
+                onInteractOutside={(e) => {
+                    if (isSelectingFile) {
+                        e.preventDefault();
+                    }
+                }}
+                onEscapeKeyDown={(e) => {
+                    if (isSelectingFile) {
+                        e.preventDefault();
+                    }
+                }}
+            >
                 <form onSubmit={handleSubmit} className="flex flex-col h-full">
                     <DialogHeader className="px-6 pt-6 pb-4">
                         <DialogTitle>Edit Production Batch</DialogTitle>
@@ -174,7 +217,10 @@ const EditProduction = ({ production, onUpdate }) => {
                                                 variant="destructive"
                                                 size="icon"
                                                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                                                onClick={handleRemoveImage}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveImage();
+                                                }}
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
@@ -189,24 +235,19 @@ const EditProduction = ({ production, onUpdate }) => {
                                             type="file"
                                             id="seedling-image"
                                             accept="image/*"
+                                            onClick={handleFileInputClick}
                                             onChange={handleImageUpload}
-                                            className="hidden"
+                                            onCancel={() => setIsSelectingFile(false)}
+                                            className="block w-full text-sm text-gray-500
+                                                file:mr-4 file:py-2 file:px-4
+                                                file:rounded-md file:border-0
+                                                file:text-sm file:font-semibold
+                                                file:bg-primary file:text-white
+                                                hover:file:bg-primary/90
+                                                file:cursor-pointer cursor-pointer"
                                         />
-                                        <label htmlFor="seedling-image">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="cursor-pointer"
-                                                asChild
-                                            >
-                                                <span>
-                                                    <Upload className="h-4 w-4 mr-2" />
-                                                    {imagePreview ? 'Change Image' : 'Upload Image'}
-                                                </span>
-                                            </Button>
-                                        </label>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            Optional: Upload a new photo of the seedling
+                                            {imageFile ? `New image selected: ${imageFile.name}` : production.image_url ? 'Current image loaded. Click above to replace.' : 'Click above to upload a photo of the seedling'}
                                         </p>
                                     </div>
                                 </div>
@@ -222,6 +263,7 @@ const EditProduction = ({ production, onUpdate }) => {
                                             placeholder="Mahogany"
                                             value={formData.seedling_type}
                                             onChange={handleInputChange}
+                                            style={{ textTransform: 'uppercase' }}
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>

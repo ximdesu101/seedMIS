@@ -52,4 +52,8 @@ export const router = createBrowserRouter([
             { path: "activity-logs", element: <ActivityLogs/> },
         ],
     },
+    {
+        path: "*",
+        element: <Navigate to="/login" replace />,
+    },
 ]);

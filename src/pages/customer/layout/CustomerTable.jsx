@@ -285,7 +285,7 @@ const CustomerTable = () => {
                                     </TableCell>
                                     <TableCell>{customer.organization || '-'}</TableCell>
                                     <TableCell>
-                                        {customer.barangay}, {customer.municipality}, {customer.province}
+                                        {customer.purok ? `${customer.purok}, ` : ''}{customer.barangay}, {customer.municipality}, {customer.province}
                                     </TableCell>
                                     <TableCell>{customer.email}</TableCell>
                                     <TableCell>{customer.contact_number}</TableCell>

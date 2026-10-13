@@ -4,6 +4,13 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import { AddressSelector } from "@/components/ui/address-selector";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Dialog,
     DialogClose,
     DialogContent,
@@ -44,12 +51,15 @@ const AddStaff = ({ onStaffAdded }) => {
         first_name: "",
         middle_name: "",
         last_name: "",
+        suffix: "",
         email: "",
         position: "",
         contact_number: "",
         barangay: "",
         municipality: "",
         province: "",
+        region: "",
+        purok: "",
         password: "",
         password_confirmation: "",
     });
@@ -84,12 +94,15 @@ const AddStaff = ({ onStaffAdded }) => {
             'first-name': 'first_name',
             'middle-name': 'middle_name',
             'last-name': 'last_name',
+            'suffix': 'suffix',
             'email': 'email',
             'position': 'position',
             'contact-number': 'contact_number',
+            'purok': 'purok',
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
+            'region': 'region',
             'password': 'password',
             'confirm-password': 'password_confirmation'
         };
@@ -102,6 +115,10 @@ const AddStaff = ({ onStaffAdded }) => {
         if (id === 'first-name' || id === 'middle-name' || id === 'last-name') {
             // Remove any characters that are not letters or spaces
             processedValue = value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+        }
+        // For purok field, auto-uppercase
+        else if (id === 'purok') {
+            processedValue = value.toUpperCase();
         }
         // For contact number, format Philippine phone number
         else if (id === 'contact-number') {
@@ -208,12 +225,15 @@ const AddStaff = ({ onStaffAdded }) => {
             first_name: "",
             middle_name: "",
             last_name: "",
+            suffix: "",
             email: "",
             position: "",
             contact_number: "",
             barangay: "",
             municipality: "",
             province: "",
+            region: "",
+            purok: "",
             password: "",
             password_confirmation: "",
         });
@@ -390,24 +410,36 @@ const AddStaff = ({ onStaffAdded }) => {
                             </Field>
 
                             <Field>
-                                <FieldLabel htmlFor="email">Email</FieldLabel>
-                                <InputGroup>
-                                    <InputGroupInput
-                                        id="email"
-                                        type="email"
-                                        placeholder="john.doe@example.com"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </InputGroup>
-                                {errors['email'] && (
-                                    <p className="text-red-500 text-sm mt-1">{errors['email']}</p>
+                                <FieldLabel htmlFor="suffix">
+                                    Suffix (Optional)
+                                </FieldLabel>
+                                <Select
+                                    value={formData.suffix}
+                                    onValueChange={(value) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            suffix: value
+                                        }));
+                                    }}
+                                >
+                                    <SelectTrigger id="suffix">
+                                        <SelectValue placeholder="Select suffix" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        <SelectItem value="Jr.">Jr.</SelectItem>
+                                        <SelectItem value="Sr.">Sr.</SelectItem>
+                                        <SelectItem value="II">II</SelectItem>
+                                        <SelectItem value="III">III</SelectItem>
+                                        <SelectItem value="IV">IV</SelectItem>
+                                        <SelectItem value="V">V</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors['suffix'] && (
+                                    <p className="text-red-500 text-sm mt-1">{errors['suffix']}</p>
                                 )}
                             </Field>
-                        </FieldGroup>
 
-                        <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field>
                                 <FieldLabel htmlFor="position">
                                     Position
@@ -455,13 +487,15 @@ const AddStaff = ({ onStaffAdded }) => {
                         {/* Address Selector */}
                         <AddressSelector
                             values={{
+                                region: formData.region,
                                 province: formData.province,
                                 municipality: formData.municipality,
                                 barangay: formData.barangay
                             }}
-                            onChange={({province, municipality, barangay}) => {
+                            onChange={({region, province, municipality, barangay}) => {
                                 setFormData(prev => ({
                                     ...prev,
+                                    region,
                                     province,
                                     municipality,
                                     barangay
@@ -469,17 +503,41 @@ const AddStaff = ({ onStaffAdded }) => {
                                 // Clear errors when changed
                                 setErrors(prev => ({
                                     ...prev,
+                                    region: undefined,
                                     province: undefined,
                                     municipality: undefined,
                                     barangay: undefined
                                 }));
                             }}
                             errors={{
+                                region: errors['region'],
                                 province: errors['province'],
                                 municipality: errors['municipality'],
                                 barangay: errors['brgy']
                             }}
                         />
+
+                        {/* Purok Field */}
+                        <Field>
+                            <FieldLabel htmlFor="purok">
+                                Purok / Street / Subdivision (Optional)
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupInput
+                                    id="purok"
+                                    type="text"
+                                    placeholder="PUROK 1 / STREET NAME"
+                                    value={formData.purok}
+                                    onChange={handleInputChange}
+                                />
+                            </InputGroup>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Enter specific location within barangay
+                            </p>
+                            {errors['purok'] && (
+                                <p className="text-red-500 text-sm mt-1">{errors['purok']}</p>
+                            )}
+                        </Field>
 
                         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field>

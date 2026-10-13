@@ -23,6 +23,7 @@ import {
 import requestService from "@/services/requestService";
 import clientService from "@/services/clientService";
 import { toast } from "sonner";
+import { getUserDisplayName } from "@/utils/nameHelper";
 
 const RequestDetails = () => {
     const { id } = useParams();
@@ -140,11 +141,9 @@ const RequestDetails = () => {
         );
     }
 
-    const fullName = client 
-        ? `${client.first_name} ${client.middle_name ? client.middle_name + ' ' : ''}${client.last_name}`
-        : 'N/A';
+    const fullName = client ? getUserDisplayName(client) : 'N/A';
     const fullAddress = client 
-        ? `${client.barangay}, ${client.municipality}, ${client.province}`
+        ? `${client.purok ? client.purok + ', ' : ''}${client.barangay}, ${client.municipality}, ${client.province}`
         : 'N/A';
 
     return (
@@ -323,16 +322,36 @@ const RequestDetails = () => {
                                     </div>
                                 </div>
 
+                                {client.region && (
+                                    <>
+                                        <Separator />
+                                        <div className="flex items-start gap-3">
+                                            <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-500">Region</p>
+                                                <p className="text-base font-semibold">{client.region}</p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
                                 <Separator />
 
                                 <div className="flex items-center justify-center pt-2">
                                     <Button 
                                         variant="outline" 
-                                        onClick={() => navigate(`/client/${client.id}`)}
+                                        onClick={() => {
+                                            // Navigate based on requester type
+                                            if (request.requester_type === 'customer') {
+                                                navigate(`/customer/${client.id}`);
+                                            } else {
+                                                navigate(`/client/${client.id}`);
+                                            }
+                                        }}
                                         className="w-full"
                                     >
                                         <User className="h-4 w-4 mr-2" />
-                                        View Full Client Profile
+                                        View Full {request.requester_type === 'customer' ? 'Customer' : 'Client'} Profile
                                     </Button>
                                 </div>
                             </>

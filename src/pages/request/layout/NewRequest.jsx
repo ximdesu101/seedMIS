@@ -70,6 +70,7 @@ const NewRequest = ({ onRequestAdded }) => {
     const [formData, setFormData] = useState({
         requester_type: "",
         requester_id: "",
+        inventory_id: "",
         seedling_type: "",
         quantity: "",
         purpose: "",
@@ -225,6 +226,13 @@ const NewRequest = ({ onRequestAdded }) => {
             const seedling = availableSeedlings.find(s => s.seedling_type === value);
             setSelectedSeedling(seedling);
             
+            // Store both seedling_type and inventory_id
+            setFormData((prev) => ({
+                ...prev,
+                seedling_type: value,
+                inventory_id: seedling ? seedling.id : "",
+            }));
+            
             // Recalculate price if quantity and user exists
             if (formData.quantity && seedling && selectedUser) {
                 calculatePrice(selectedUser.organization, seedling.price_per_unit, formData.quantity);
@@ -290,6 +298,7 @@ const NewRequest = ({ onRequestAdded }) => {
         setFormData({
             requester_type: "",
             requester_id: "",
+            inventory_id: "",
             seedling_type: "",
             quantity: "",
             purpose: "",
@@ -323,13 +332,15 @@ const NewRequest = ({ onRequestAdded }) => {
             const requestData = {
                 requester_type: formData.requester_type,
                 requester_id: formData.requester_id,
-                seedling_type: formData.seedling_type,
+                inventory_id: formData.inventory_id,
+                seedling_type: formData.seedling_type, // Send for fallback/display
                 quantity: parseInt(formData.quantity),
                 purpose: formData.purpose,
                 contact_number: selectedUser?.contact_number || "",
                 requested_date: requestedDate ? format(requestedDate, "yyyy-MM-dd") : null,
                 created_by_user_type: userType,
                 created_by_user_id: String(user.id), // Convert to string (admin: number, staff: varchar)
+                request_source: 'walkin', // Always walkin when created by admin/staff
             };
 
             const response = await requestService.createRequest(requestData);

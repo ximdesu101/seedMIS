@@ -46,11 +46,14 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
         first_name: "",
         middle_name: "",
         last_name: "",
+        suffix: "",
         email: "",
         contact_number: "",
+        purok: "",
         barangay: "",
         municipality: "",
         province: "",
+        region: "",
         status: "",
     });
 
@@ -63,11 +66,14 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
                 first_name: customer.first_name || "",
                 middle_name: customer.middle_name || "",
                 last_name: customer.last_name || "",
+                suffix: customer.suffix || "",
                 email: customer.email || "",
                 contact_number: customer.contact_number || "",
+                purok: customer.purok || "",
                 barangay: customer.barangay || "",
                 municipality: customer.municipality || "",
                 province: customer.province || "",
+                region: customer.region || "",
                 status: customer.status || "Active",
             });
         }
@@ -82,11 +88,14 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
             'first-name': 'first_name',
             'middle-name': 'middle_name',
             'last-name': 'last_name',
+            'suffix': 'suffix',
             'email': 'email',
             'contact-number': 'contact_number',
+            'purok': 'purok',
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
+            'region': 'region',
             'status': 'status',
         };
         
@@ -111,6 +120,8 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
             }
             
             processedValue = cleaned;
+        } else if (id === 'purok') {
+            processedValue = value.toUpperCase();
         } else if (id === 'email' || id === 'status') {
             processedValue = value;
         } else {
@@ -334,6 +345,39 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
                             </Field>
 
                             <Field>
+                                <FieldLabel htmlFor="suffix">
+                                    Suffix (Optional)
+                                </FieldLabel>
+                                <Select
+                                    value={formData.suffix}
+                                    onValueChange={(value) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            suffix: value === "none" ? "" : value
+                                        }));
+                                    }}
+                                >
+                                    <SelectTrigger id="suffix">
+                                        <SelectValue placeholder="Select suffix" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="Jr.">Jr.</SelectItem>
+                                        <SelectItem value="Sr.">Sr.</SelectItem>
+                                        <SelectItem value="II">II</SelectItem>
+                                        <SelectItem value="III">III</SelectItem>
+                                        <SelectItem value="IV">IV</SelectItem>
+                                        <SelectItem value="V">V</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Select name suffix if applicable
+                                </p>
+                            </Field>
+                        </FieldGroup>
+
+                        <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field>
                                 <FieldLabel htmlFor="email">Email</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -392,30 +436,52 @@ const EditCustomer = ({ customer, onCustomerUpdated, trigger }) => {
                         {/* Address Selector */}
                         <AddressSelector
                             values={{
+                                region: formData.region,
                                 province: formData.province,
                                 municipality: formData.municipality,
                                 barangay: formData.barangay
                             }}
-                            onChange={({province, municipality, barangay}) => {
+                            onChange={({region, province, municipality, barangay}) => {
                                 setFormData(prev => ({
                                     ...prev,
+                                    region,
                                     province,
                                     municipality,
                                     barangay
                                 }));
                                 setErrors(prev => ({
                                     ...prev,
+                                    region: undefined,
                                     province: undefined,
                                     municipality: undefined,
                                     barangay: undefined
                                 }));
                             }}
                             errors={{
+                                region: errors['region'],
                                 province: errors['province'],
                                 municipality: errors['municipality'],
                                 barangay: errors['brgy']
                             }}
                         />
+
+                        <Field>
+                            <FieldLabel htmlFor="purok">
+                                Purok/Street (Optional)
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupInput
+                                    id="purok"
+                                    type="text"
+                                    placeholder="PUROK 1 or STREET NAME"
+                                    value={formData.purok}
+                                    onChange={handleInputChange}
+                                />
+                            </InputGroup>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Enter purok or street address
+                            </p>
+                        </Field>
 
                     </FieldGroup>
 

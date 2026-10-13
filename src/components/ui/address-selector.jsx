@@ -1,16 +1,46 @@
 import * as React from "react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { getProvinces, getMunicipalities, getBarangays } from "@/utils/philippineAddresses";
+import { getAllRegions, getProvincesForRegion } from "@/utils/regionProvinceMapping";
 
 export const AddressSelector = ({ 
-  values = { province: "", municipality: "", barangay: "" },
+  values = { region: "", province: "", municipality: "", barangay: "" },
   onChange,
   errors = {},
   disabled = false 
 }) => {
-  const [provinces] = React.useState(getProvinces());
+  const [regions] = React.useState(getAllRegions());
+  const [provinces, setProvinces] = React.useState([]);
   const [municipalities, setMunicipalities] = React.useState([]);
   const [barangays, setBarangays] = React.useState([]);
+  const [isInitialMount, setIsInitialMount] = React.useState(true);
+
+  // Update provinces when region changes
+  React.useEffect(() => {
+    if (values.region) {
+      const provs = getProvincesForRegion(values.region);
+      setProvinces(provs);
+      
+      // Only reset dependent fields if NOT initial mount and current province is not in new list
+      if (!isInitialMount && values.province && !provs.includes(values.province)) {
+        onChange({ 
+          region: values.region,
+          province: "", 
+          municipality: "", 
+          barangay: "" 
+        });
+      }
+    } else {
+      setProvinces([]);
+      setMunicipalities([]);
+      setBarangays([]);
+    }
+    
+    // After first render, set isInitialMount to false
+    if (isInitialMount) {
+      setIsInitialMount(false);
+    }
+  }, [values.region]);
 
   // Update municipalities when province changes
   React.useEffect(() => {
@@ -18,10 +48,10 @@ export const AddressSelector = ({
       const munis = getMunicipalities(values.province);
       setMunicipalities(munis);
       
-      // Reset municipality and barangay if current municipality is not in new list
-      if (values.municipality && !munis.includes(values.municipality)) {
+      // Only reset if NOT initial mount and current municipality is not in new list
+      if (!isInitialMount && values.municipality && !munis.includes(values.municipality)) {
         onChange({ 
-          province: values.province, 
+          ...values,
           municipality: "", 
           barangay: "" 
         });
@@ -38,8 +68,8 @@ export const AddressSelector = ({
       const brgys = getBarangays(values.province, values.municipality);
       setBarangays(brgys);
       
-      // Reset barangay if current barangay is not in new list
-      if (values.barangay && !brgys.includes(values.barangay)) {
+      // Only reset if NOT initial mount and current barangay is not in new list
+      if (!isInitialMount && values.barangay && !brgys.includes(values.barangay)) {
         onChange({ 
           ...values, 
           barangay: "" 
@@ -50,9 +80,20 @@ export const AddressSelector = ({
     }
   }, [values.province, values.municipality]);
 
+  const handleRegionChange = (e) => {
+    const newRegion = e.target.value;
+    onChange({ 
+      region: newRegion,
+      province: "", 
+      municipality: "", 
+      barangay: "" 
+    });
+  };
+
   const handleProvinceChange = (e) => {
     const newProvince = e.target.value;
     onChange({ 
+      ...values,
       province: newProvince, 
       municipality: "", 
       barangay: "" 
@@ -77,75 +118,100 @@ export const AddressSelector = ({
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {/* Province */}
+    <div className="space-y-4">
+      {/* Region */}
       <Field>
-        <FieldLabel htmlFor="province">Province</FieldLabel>
+        <FieldLabel htmlFor="region">Region</FieldLabel>
         <select
-          id="province"
-          value={values.province}
-          onChange={handleProvinceChange}
+          id="region"
+          value={values.region}
+          onChange={handleRegionChange}
           disabled={disabled}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           required
         >
-          <option value="">Select Province</option>
-          {provinces.map((province) => (
-            <option key={province} value={province}>
-              {province}
+          <option value="">Select Region</option>
+          {regions.map((region) => (
+            <option key={region} value={region}>
+              {region}
             </option>
           ))}
         </select>
-        {errors.province && (
-          <p className="text-red-500 text-sm mt-1">{errors.province}</p>
+        {errors.region && (
+          <p className="text-red-500 text-sm mt-1">{errors.region}</p>
         )}
       </Field>
 
-      {/* Municipality */}
-      <Field>
-        <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
-        <select
-          id="municipality"
-          value={values.municipality}
-          onChange={handleMunicipalityChange}
-          disabled={disabled || !values.province}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-          required
-        >
-          <option value="">Select Municipality</option>
-          {municipalities.map((municipality) => (
-            <option key={municipality} value={municipality}>
-              {municipality}
-            </option>
-          ))}
-        </select>
-        {errors.municipality && (
-          <p className="text-red-500 text-sm mt-1">{errors.municipality}</p>
-        )}
-      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Province */}
+        <Field>
+          <FieldLabel htmlFor="province">Province</FieldLabel>
+          <select
+            id="province"
+            value={values.province}
+            onChange={handleProvinceChange}
+            disabled={disabled || !values.region}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          >
+            <option value="">Select Province</option>
+            {provinces.map((province) => (
+              <option key={province} value={province}>
+                {province}
+              </option>
+            ))}
+          </select>
+          {errors.province && (
+            <p className="text-red-500 text-sm mt-1">{errors.province}</p>
+          )}
+        </Field>
 
-      {/* Barangay */}
-      <Field>
-        <FieldLabel htmlFor="barangay">Barangay</FieldLabel>
-        <select
-          id="barangay"
-          value={values.barangay}
-          onChange={handleBarangayChange}
-          disabled={disabled || !values.municipality}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-          required
-        >
-          <option value="">Select Barangay</option>
-          {barangays.map((barangay) => (
-            <option key={barangay} value={barangay}>
-              {barangay}
-            </option>
-          ))}
-        </select>
-        {errors.barangay && (
-          <p className="text-red-500 text-sm mt-1">{errors.barangay}</p>
-        )}
-      </Field>
+        {/* Municipality */}
+        <Field>
+          <FieldLabel htmlFor="municipality">Municipality</FieldLabel>
+          <select
+            id="municipality"
+            value={values.municipality}
+            onChange={handleMunicipalityChange}
+            disabled={disabled || !values.province}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          >
+            <option value="">Select Municipality</option>
+            {municipalities.map((municipality) => (
+              <option key={municipality} value={municipality}>
+                {municipality}
+              </option>
+            ))}
+          </select>
+          {errors.municipality && (
+            <p className="text-red-500 text-sm mt-1">{errors.municipality}</p>
+          )}
+        </Field>
+
+        {/* Barangay */}
+        <Field>
+          <FieldLabel htmlFor="barangay">Barangay</FieldLabel>
+          <select
+            id="barangay"
+            value={values.barangay}
+            onChange={handleBarangayChange}
+            disabled={disabled || !values.municipality}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#016146] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          >
+            <option value="">Select Barangay</option>
+            {barangays.map((barangay) => (
+              <option key={barangay} value={barangay}>
+                {barangay}
+              </option>
+            ))}
+          </select>
+          {errors.barangay && (
+            <p className="text-red-500 text-sm mt-1">{errors.barangay}</p>
+          )}
+        </Field>
+      </div>
     </div>
   );
 };

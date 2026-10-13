@@ -15,13 +15,14 @@ export const isMiddleNameNA = (middleName) => {
 };
 
 /**
- * Format a full name, excluding middle name if it's "NA"
+ * Format a full name with suffix, excluding middle name if it's "NA"
  * @param {string} firstName - First name
  * @param {string} middleName - Middle name (optional)
  * @param {string} lastName - Last name
- * @returns {string} - Formatted full name
+ * @param {string} suffix - Name suffix (optional, e.g., Jr., Sr., II, III)
+ * @returns {string} - Formatted full name with suffix
  */
-export const formatFullName = (firstName, middleName, lastName) => {
+export const formatFullName = (firstName, middleName, lastName, suffix = '') => {
   const parts = [firstName];
   
   // Only include middle name if it's not "NA"
@@ -31,13 +32,18 @@ export const formatFullName = (firstName, middleName, lastName) => {
   
   parts.push(lastName);
   
+  // Add suffix if provided
+  if (suffix && suffix.trim()) {
+    parts.push(suffix);
+  }
+  
   return parts.filter(Boolean).join(' ');
 };
 
 /**
- * Get display name from user object
- * @param {object} user - User object with first_name, middle_name, last_name
- * @returns {string} - Formatted display name
+ * Get display name from user object with suffix
+ * @param {object} user - User object with first_name, middle_name, last_name, suffix
+ * @returns {string} - Formatted display name with suffix
  */
 export const getUserDisplayName = (user) => {
   if (!user) return '';
@@ -45,6 +51,7 @@ export const getUserDisplayName = (user) => {
   return formatFullName(
     user.first_name || '',
     user.middle_name || '',
-    user.last_name || ''
+    user.last_name || '',
+    user.suffix || ''
   );
 };

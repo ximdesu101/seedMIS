@@ -22,6 +22,13 @@ import {
     InputGroupInput,
 } from "@/components/ui/input-group";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     CirclePlus,
     Loader2,
 } from "lucide-react";
@@ -39,11 +46,14 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
         first_name: "",
         middle_name: "",
         last_name: "",
+        suffix: "",
         email: "",
         contact_number: "",
+        purok: "",
         barangay: "",
         municipality: "",
         province: "",
+        region: "",
     });
 
     // Fetch next customer ID when dialog opens
@@ -77,11 +87,14 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
             'first-name': 'first_name',
             'middle-name': 'middle_name',
             'last-name': 'last_name',
+            'suffix': 'suffix',
             'email': 'email',
             'contact-number': 'contact_number',
+            'purok': 'purok',
             'brgy': 'barangay',
             'municipality': 'municipality',
             'province': 'province',
+            'region': 'region',
         };
         
         const stateKey = fieldMapping[id] || id;
@@ -126,7 +139,11 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
             }
             
             processedValue = cleaned;
-        } 
+        }
+        // For purok, convert to uppercase
+        else if (id === 'purok') {
+            processedValue = value.toUpperCase();
+        }
         // For email, keep as is (case-sensitive)
         else if (id === 'email') {
             processedValue = value;
@@ -193,11 +210,14 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
             first_name: "",
             middle_name: "",
             last_name: "",
+            suffix: "",
             email: "",
             contact_number: "",
+            purok: "",
             barangay: "",
             municipality: "",
             province: "",
+            region: "",
         });
         setErrors({});
     };
@@ -391,6 +411,37 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
                             </Field>
 
                             <Field>
+                                <FieldLabel htmlFor="suffix">
+                                    Suffix (Optional)
+                                </FieldLabel>
+                                <Select
+                                    value={formData.suffix}
+                                    onValueChange={(value) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            suffix: value === "none" ? "" : value
+                                        }));
+                                    }}
+                                >
+                                    <SelectTrigger id="suffix">
+                                        <SelectValue placeholder="Select suffix" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="Jr.">Jr.</SelectItem>
+                                        <SelectItem value="Sr.">Sr.</SelectItem>
+                                        <SelectItem value="II">II</SelectItem>
+                                        <SelectItem value="III">III</SelectItem>
+                                        <SelectItem value="IV">IV</SelectItem>
+                                        <SelectItem value="V">V</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Select name suffix if applicable
+                                </p>
+                            </Field>
+
+                            <Field>
                                 <FieldLabel htmlFor="email">Email</FieldLabel>
                                 <InputGroup>
                                     <InputGroupInput
@@ -434,13 +485,15 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
                         {/* Address Selector */}
                         <AddressSelector
                             values={{
+                                region: formData.region,
                                 province: formData.province,
                                 municipality: formData.municipality,
                                 barangay: formData.barangay
                             }}
-                            onChange={({province, municipality, barangay}) => {
+                            onChange={({region, province, municipality, barangay}) => {
                                 setFormData(prev => ({
                                     ...prev,
+                                    region,
                                     province,
                                     municipality,
                                     barangay
@@ -448,17 +501,37 @@ const AddWalkinCustomer = ({ onCustomerAdded }) => {
                                 // Clear errors when changed
                                 setErrors(prev => ({
                                     ...prev,
+                                    region: undefined,
                                     province: undefined,
                                     municipality: undefined,
                                     barangay: undefined
                                 }));
                             }}
                             errors={{
+                                region: errors['region'],
                                 province: errors['province'],
                                 municipality: errors['municipality'],
                                 barangay: errors['brgy']
                             }}
                         />
+
+                        <Field>
+                            <FieldLabel htmlFor="purok">
+                                Purok/Street (Optional)
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupInput
+                                    id="purok"
+                                    type="text"
+                                    placeholder="PUROK 1 or STREET NAME"
+                                    value={formData.purok}
+                                    onChange={handleInputChange}
+                                />
+                            </InputGroup>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Enter purok or street address
+                            </p>
+                        </Field>
                     </FieldGroup>
 
                     <DialogFooter className="mt-4">
