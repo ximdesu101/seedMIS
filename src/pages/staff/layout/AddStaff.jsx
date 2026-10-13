@@ -180,6 +180,9 @@ const AddStaff = ({ onStaffAdded }) => {
     const validateForm = () => {
         const newErrors = {};
         
+        console.log('=== VALIDATING FORM ===');
+        console.log('Form Data:', formData);
+        
         if (!formData.staff_id) newErrors['staff-id'] = "Staff ID is required";
         if (!formData.first_name) newErrors['first-name'] = "First name is required";
         if (!formData.middle_name) newErrors['middle-name'] = "Middle name is required";
@@ -192,29 +195,54 @@ const AddStaff = ({ onStaffAdded }) => {
             newErrors['contact-number'] = "Contact number is required";
         } else {
             const phone = formData.contact_number;
+            console.log('Contact number:', phone, 'Length:', phone.length);
             // Check if valid Philippine format
             if (phone.startsWith('+63')) {
                 if (phone.length !== 13) {
-                    newErrors['contact-number'] = "Invalid format. Should be +63XXXXXXXXXX (13 digits)";
+                    console.log('Phone validation FAILED: +63 format but length is', phone.length);
+                    newErrors['contact-number'] = `Invalid format. Should be +63XXXXXXXXXX (13 digits), got ${phone.length} digits`;
                 }
             } else if (phone.startsWith('09')) {
                 if (phone.length !== 11) {
-                    newErrors['contact-number'] = "Invalid format. Should be 09XXXXXXXXX (11 digits)";
+                    console.log('Phone validation FAILED: 09 format but length is', phone.length);
+                    newErrors['contact-number'] = `Invalid format. Should be 09XXXXXXXXX (11 digits), got ${phone.length} digits`;
                 }
             } else {
+                console.log('Phone validation FAILED: Does not start with +63 or 09');
                 newErrors['contact-number'] = "Must start with +63 or 09";
             }
         }
         if (!formData.barangay) newErrors['brgy'] = "Barangay is required";
         if (!formData.municipality) newErrors['municipality'] = "Municipality is required";
         if (!formData.province) newErrors['province'] = "Province is required";
-        if (!formData.password) newErrors['password'] = "Password is required";
-        if (formData.password.length < 8) newErrors['password'] = "Password must be at least 8 characters";
-        if (!formData.password_confirmation) newErrors['confirm-password'] = "Confirm password is required";
-        if (formData.password !== formData.password_confirmation) {
+        if (!formData.region) newErrors['region'] = "Region is required";
+        
+        // Password validation
+        if (!formData.password) {
+            newErrors['password'] = "Password is required";
+        } else if (formData.password.length < 8) {
+            newErrors['password'] = "Password must be at least 8 characters";
+        } else {
+            // Check password strength requirements
+            const hasUpperCase = /[A-Z]/.test(formData.password);
+            const hasLowerCase = /[a-z]/.test(formData.password);
+            const hasNumber = /\d/.test(formData.password);
+            const hasSpecialChar = /[@$!%*?&#]/.test(formData.password);
+            
+            if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+                newErrors['password'] = "Password must contain uppercase, lowercase, number, and special character (@$!%*?&#)";
+            }
+        }
+        
+        if (!formData.password_confirmation) {
+            newErrors['confirm-password'] = "Confirm password is required";
+        } else if (formData.password !== formData.password_confirmation) {
             newErrors['confirm-password'] = "Passwords do not match";
         }
 
+        console.log('Validation Errors:', newErrors);
+        console.log('=== END VALIDATION ===');
+        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -252,6 +280,9 @@ const AddStaff = ({ onStaffAdded }) => {
 
         setIsSubmitting(true);
 
+        // Debug: Log the data being sent
+        console.log('Sending staff data:', formData);
+
         try {
             const response = await staffService.createStaff(formData);
             
@@ -270,6 +301,7 @@ const AddStaff = ({ onStaffAdded }) => {
         } catch (error) {
             console.error("Error adding staff:", error);
             console.error("Error response:", error.response);
+            console.error("Full error object:", JSON.stringify(error, null, 2));
             
             if (error.response?.data?.errors) {
                 // Handle validation errors from backend
@@ -279,14 +311,14 @@ const AddStaff = ({ onStaffAdded }) => {
                 Object.keys(error.response.data.errors).forEach(key => {
                     const formattedKey = key.replace(/_/g, '-');
                     backendErrors[formattedKey] = error.response.data.errors[key][0];
-                    errorMessages.push(error.response.data.errors[key][0]);
+                    errorMessages.push(`${key}: ${error.response.data.errors[key][0]}`);
                 });
                 
                 setErrors(backendErrors);
                 
-                // Show first error in toast
+                // Show all errors in toast
                 toast.error("Validation Error", {
-                    description: errorMessages[0]
+                    description: errorMessages.join('\n')
                 });
             } else if (error.response?.data?.message) {
                 toast.error("Error", {
@@ -294,7 +326,7 @@ const AddStaff = ({ onStaffAdded }) => {
                 });
             } else if (error.message) {
                 toast.error("Network Error", {
-                    description: "Unable to connect to the server. Please check your connection."
+                    description: `Unable to connect to the server. Error: ${error.message}`
                 });
             } else {
                 toast.error("Failed to add staff. Please try again.");
@@ -459,6 +491,25 @@ const AddStaff = ({ onStaffAdded }) => {
                                 )}
                             </Field>
 
+                            <Field>
+                                <FieldLabel htmlFor="email">Email</FieldLabel>
+                                <InputGroup>
+                                    <InputGroupInput
+                                        id="email"
+                                        type="email"
+                                        placeholder="john.doe@example.com"
+                                        value={formData.email}
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                </InputGroup>
+                                {errors['email'] && (
+                                    <p className="text-red-500 text-sm mt-1">{errors['email']}</p>
+                                )}
+                            </Field>
+                        </FieldGroup>
+
+                        <FieldGroup className="grid grid-cols-1 gap-4">
                             <Field>
                                 <FieldLabel htmlFor="contact-number">
                                     Contact Number
