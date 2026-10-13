@@ -1,15 +1,14 @@
 import axios from 'axios';
 
-// Use environment variable with fallback to auto-detection
-const API_BASE_URL = import.meta.env.VITE_API_URL || (() => {
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    return isProduction 
-        ? 'https://seedmis-server-production.up.railway.app/api'
-        : 'http://localhost:8000/api';
-})();
+// Automatic environment detection
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
+const API_BASE_URL = isProduction 
+    ? 'https://seedmis-server-production.up.railway.app/api'  // Vercel deployment
+    : 'http://localhost:8000/api';  // Local development
+
+console.log('🚀 Environment:', isProduction ? 'Production (Vercel)' : 'Development (localhost)');
 console.log('🚀 API Base URL:', API_BASE_URL);
-console.log('🚀 Environment Mode:', import.meta.env.MODE);
 
 const api = axios.create({
     baseURL: API_BASE_URL,
