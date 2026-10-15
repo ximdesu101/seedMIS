@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { getImageUrl } from "@/utils/apiConfig";
+import { toast } from "sonner";
 import {
     Popover,
     PopoverContent,
@@ -128,7 +129,9 @@ const EditProduction = ({ production, onUpdate }) => {
             const response = await productionService.updateProduction(production.id, productionData);
 
             if (response.success) {
-                alert('Production batch updated successfully!');
+                toast.success("Production batch updated successfully!", {
+                    description: `${production.batch_id} has been updated.`
+                });
                 setDialogOpen(false);
                 if (onUpdate) {
                     onUpdate();
@@ -140,11 +143,13 @@ const EditProduction = ({ production, onUpdate }) => {
             console.error('Error updating production:', error);
             if (error.response && error.response.data) {
                 const errorMessage = error.response.data.errors 
-                    ? Object.values(error.response.data.errors).flat().join('\n')
+                    ? Object.values(error.response.data.errors).flat().join(', ')
                     : error.response.data.message;
-                alert(`Error: ${errorMessage}`);
+                toast.error("Update failed", {
+                    description: errorMessage
+                });
             } else {
-                alert('Failed to update production. Please try again.');
+                toast.error("Failed to update production. Please try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -308,6 +313,13 @@ const EditProduction = ({ production, onUpdate }) => {
                                                 mode="single"
                                                 selected={dateSown}
                                                 onSelect={setDateSown}
+                                                disabled={(date) => {
+                                                    // Cannot select dates after expected ready date
+                                                    if (expectedReadyDate && date > expectedReadyDate) {
+                                                        return true;
+                                                    }
+                                                    return false;
+                                                }}
                                                 initialFocus
                                             />
                                         </PopoverContent>

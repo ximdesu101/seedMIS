@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import NewRequest from "./NewRequest";
+import RejectRequestDialog from "./RejectRequestDialog";
 
 const RequestTable = () => {
     const navigate = useNavigate();
@@ -55,6 +56,8 @@ const RequestTable = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showRejectDialog, setShowRejectDialog] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
     const itemsPerPage = 5;
 
     useEffect(() => {
@@ -85,9 +88,8 @@ const RequestTable = () => {
         fetchRequests(); // Refresh the list
     };
 
-    // Handle reject request
+    // Handle reject request - Open dialog
     const handleRejectRequest = (requestId) => {
-        // Find the request to show details in confirmation
         const request = requests.find(r => r.id === requestId);
         
         if (!request) {
@@ -95,48 +97,43 @@ const RequestTable = () => {
             return;
         }
 
-        // Show warning toast with action buttons
-        toast.warning('Reject this request?', {
-            description: `Requester: ${request.requester}\nSeedling: ${request.seedlingType}\nQuantity: ${request.quantity}\n\nThe reserved quantity will be returned to inventory.`,
-            duration: 10000,
-            action: {
-                label: 'Reject Request',
-                onClick: async () => {
-                    try {
-                        // Get user data from localStorage
-                        const user = JSON.parse(localStorage.getItem('user'));
-                        const userType = localStorage.getItem('userType');
+        setSelectedRequest(request);
+        setShowRejectDialog(true);
+    };
 
-                        const response = await requestService.updateRequest(requestId, {
-                            status: 'Rejected',
-                            user_id: user?.id || null,
-                            user_type: userType || null,
-                        });
+    // Handle reject with reason from dialog
+    const handleRejectWithReason = async (requestId, reason) => {
+        try {
+            // Get user data from localStorage
+            const user = JSON.parse(localStorage.getItem('user'));
+            const userType = localStorage.getItem('userType');
 
-                        if (response.success) {
-                            toast.success('Request Rejected', {
-                                description: `${request.quantity} ${request.seedlingType} seedlings returned to inventory.`,
-                            });
-                            fetchRequests(); // Refresh the list
-                        }
-                    } catch (error) {
-                        console.error('Error rejecting request:', error);
-                        
-                        if (error.response?.data?.message) {
-                            toast.error('Rejection Failed', {
-                                description: error.response.data.message,
-                            });
-                        } else {
-                            toast.error('Failed to reject request. Please try again.');
-                        }
-                    }
-                }
-            },
-            cancel: {
-                label: 'Cancel',
-                onClick: () => {}
+            const response = await requestService.updateRequest(requestId, {
+                status: 'Rejected',
+                rejection_reason: reason,
+                user_id: user?.id || null,
+                user_type: userType || null,
+            });
+
+            if (response.success) {
+                const request = requests.find(r => r.id === requestId);
+                toast.success('Request Rejected', {
+                    description: `${request.quantity} ${request.seedlingType} seedlings returned to inventory.`,
+                });
+                fetchRequests(); // Refresh the list
             }
-        });
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            
+            if (error.response?.data?.message) {
+                toast.error('Rejection Failed', {
+                    description: error.response.data.message,
+                });
+            } else {
+                toast.error('Failed to reject request. Please try again.');
+            }
+            throw error; // Re-throw to let dialog handle it
+        }
     };
 
     // Handle approve request
@@ -350,6 +347,9 @@ const RequestTable = () => {
                                 <SelectItem value="rejected">
                                     Rejected
                                 </SelectItem>
+                                <SelectItem value="cancelled">
+                                    Cancelled
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -434,6 +434,8 @@ const RequestTable = () => {
                                                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                                 : request.status === 'Released'
                                                 ? 'bg-green-50 text-green-700 border border-green-200'
+                                                : request.status === 'Cancelled'
+                                                ? 'bg-gray-50 text-gray-700 border border-gray-200'
                                                 : 'bg-red-50 text-red-700 border border-red-200'
                                         }`}>
                                             {request.status}
@@ -588,6 +590,19 @@ const RequestTable = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Reject Request Dialog */}
+            {showRejectDialog && selectedRequest && (
+                <RejectRequestDialog
+                    isOpen={showRejectDialog}
+                    onClose={() => {
+                        setShowRejectDialog(false);
+                        setSelectedRequest(null);
+                    }}
+                    request={selectedRequest}
+                    onReject={handleRejectWithReason}
+                />
+            )}
         </div>
     );
 };

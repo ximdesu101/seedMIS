@@ -69,14 +69,14 @@ const TargetProgress = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between items-baseline">
                                 <span className={`text-2xl font-bold ${getStatusColor(progress.annual_production.percentage)}`}>
-                                    {progress.annual_production.percentage.toFixed(1)}%
+                                    {Math.min(progress.annual_production.percentage, 100).toFixed(1)}%
                                 </span>
                                 <span className="text-sm text-muted-foreground">
                                     {progress.annual_production.current.toLocaleString()} / {progress.annual_production.target.toLocaleString()}
                                 </span>
                             </div>
                             <Progress 
-                                value={progress.annual_production.percentage} 
+                                value={Math.min(progress.annual_production.percentage, 100)} 
                                 className={`h-2 ${getProgressColor(progress.annual_production.percentage)}`}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -103,14 +103,14 @@ const TargetProgress = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between items-baseline">
                                 <span className={`text-2xl font-bold ${getStatusColor(progress.monthly_distribution.percentage)}`}>
-                                    {progress.monthly_distribution.percentage.toFixed(1)}%
+                                    {Math.min(progress.monthly_distribution.percentage, 100).toFixed(1)}%
                                 </span>
                                 <span className="text-sm text-muted-foreground">
                                     {progress.monthly_distribution.current.toLocaleString()} / {progress.monthly_distribution.target.toLocaleString()}
                                 </span>
                             </div>
                             <Progress 
-                                value={progress.monthly_distribution.percentage} 
+                                value={Math.min(progress.monthly_distribution.percentage, 100)} 
                                 className={`h-2 ${getProgressColor(progress.monthly_distribution.percentage)}`}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -135,14 +135,14 @@ const TargetProgress = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between items-baseline">
                                 <span className={`text-2xl font-bold ${getStatusColor(progress.revenue.percentage)}`}>
-                                    {progress.revenue.percentage.toFixed(1)}%
+                                    {Math.min(progress.revenue.percentage, 100).toFixed(1)}%
                                 </span>
                                 <span className="text-sm text-muted-foreground">
                                     ₱{progress.revenue.current.toLocaleString()} / ₱{progress.revenue.target.toLocaleString()}
                                 </span>
                             </div>
                             <Progress 
-                                value={progress.revenue.percentage} 
+                                value={Math.min(progress.revenue.percentage, 100)} 
                                 className={`h-2 ${getProgressColor(progress.revenue.percentage)}`}
                             />
                             <p className="text-xs text-muted-foreground">

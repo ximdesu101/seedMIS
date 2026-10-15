@@ -438,6 +438,33 @@ const RequestDetails = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Rejection/Cancellation Reason Card */}
+            {(request.status === 'Rejected' || request.status === 'Cancelled') && (request.rejection_reason || request.cancellation_reason) && (
+                <Card className="border-red-200 bg-red-50">
+                    <CardHeader>
+                        <CardTitle className="text-red-800 flex items-center gap-2">
+                            <XCircle className="h-5 w-5" />
+                            {request.status === 'Rejected' ? 'Rejection Reason' : 'Cancellation Reason'}
+                        </CardTitle>
+                        <CardDescription className="text-red-700">
+                            Why this request was {request.status === 'Rejected' ? 'rejected' : 'cancelled'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="p-4 bg-white rounded-lg border border-red-200">
+                            <p className="text-gray-900 whitespace-pre-wrap">
+                                {request.status === 'Rejected' ? request.rejection_reason : request.cancellation_reason}
+                            </p>
+                        </div>
+                        {request.status === 'Rejected' && (
+                            <p className="text-xs text-red-600 mt-3">
+                                The reserved quantity has been returned to inventory.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 };

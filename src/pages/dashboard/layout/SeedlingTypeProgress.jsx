@@ -113,7 +113,7 @@ const SeedlingTypeProgress = () => {
                                 </div>
                                 <div className="flex items-baseline gap-2">
                                     <span className={`text-lg font-bold ${getStatusColor(item.percentage)}`}>
-                                        {item.percentage.toFixed(1)}%
+                                        {Math.min(item.percentage, 100).toFixed(1)}%
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                         {item.current.toLocaleString()} / {item.target.toLocaleString()}

@@ -412,6 +412,7 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
                                             id="current_quantity"
                                             type="number"
                                             min="0"
+                                            max={formData.quantity_sown || undefined}
                                             placeholder="750"
                                             value={formData.current_quantity}
                                             onChange={handleInputChange}
@@ -424,6 +425,11 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
                                     </InputGroup>
+                                    {formData.quantity_sown && parseInt(formData.current_quantity) > parseInt(formData.quantity_sown) && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            Cannot exceed quantity sown ({formData.quantity_sown})
+                                        </p>
+                                    )}
                                 </Field>
                             </div>
 
