@@ -25,9 +25,6 @@ import {
     Loader2,
 } from "lucide-react";
 
-import clientService from "@/services/clientService";
-import { toast } from "sonner";
-
 const chartConfig = {
     users: {
         label: "Total Clients",
@@ -43,8 +40,7 @@ const chartConfig = {
     },
 };
 
-const CardMetrics = () => {
-    const [loading, setLoading] = useState(true);
+const CardMetrics = ({ clients = [], loading: propLoading = false }) => {
     const [totalClients, setTotalClients] = useState(0);
     const [activeClients, setActiveClients] = useState(0);
     const [deactivatedClients, setDeactivatedClients] = useState(0);
@@ -56,35 +52,21 @@ const CardMetrics = () => {
     ]);
 
     useEffect(() => {
-        fetchClientStats();
-    }, []);
-
-    const fetchClientStats = async () => {
-        try {
-            setLoading(true);
-            const response = await clientService.getAllClients();
-            
-            if (response.success) {
-                const clients = response.data;
-                const total = clients.length;
-                
-                // Count active and inactive clients based on actual status
-                const active = clients.filter(client => client.status === 'Active').length;
-                const deactivated = clients.filter(client => client.status === 'Inactive').length;
-                
-                setTotalClients(total);
-                setActiveClients(active);
-                setDeactivatedClients(deactivated);
-                
-                // Generate chart data based on created dates
-                generateChartData(clients);
-            }
-        } catch (error) {
-            console.error("Error fetching client stats:", error);
-            toast.error("Failed to load client statistics");
-        } finally {
-            setLoading(false);
+        if (clients.length >= 0) {
+            updateStats(clients);
         }
+    }, [clients]);
+
+    const updateStats = (clientsData) => {
+        const total = clientsData.length;
+        const active = clientsData.filter(client => client.status === 'Active').length;
+        const deactivated = clientsData.filter(client => client.status === 'Inactive').length;
+        
+        setTotalClients(total);
+        setActiveClients(active);
+        setDeactivatedClients(deactivated);
+        
+        generateChartData(clientsData);
     };
 
     const generateChartData = (clients) => {
@@ -198,7 +180,7 @@ const CardMetrics = () => {
                         </CardHeader>
 
                         <CardContent>
-                            {loading ? (
+                            {propLoading ? (
                                 <div className="flex items-center justify-center h-[70px]">
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 </div>

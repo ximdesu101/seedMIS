@@ -25,9 +25,6 @@ import {
     Loader2,
 } from "lucide-react";
 
-import staffService from "@/services/staffService";
-import { toast } from "sonner";
-
 const chartConfig = {
     users: {
         label: "Total Staff",
@@ -43,8 +40,7 @@ const chartConfig = {
     },
 };
 
-const CardMetrics = () => {
-    const [loading, setLoading] = useState(true);
+const CardMetrics = ({ staff = [], loading: propLoading = false }) => {
     const [totalStaff, setTotalStaff] = useState(0);
     const [activeStaff, setActiveStaff] = useState(0);
     const [deactivatedStaff, setDeactivatedStaff] = useState(0);
@@ -56,35 +52,21 @@ const CardMetrics = () => {
     ]);
 
     useEffect(() => {
-        fetchStaffStats();
-    }, []);
-
-    const fetchStaffStats = async () => {
-        try {
-            setLoading(true);
-            const response = await staffService.getAllStaff();
-            
-            if (response.success) {
-                const staff = response.data;
-                const total = staff.length;
-                
-                // Count active and inactive staff based on actual status
-                const active = staff.filter(s => s.status === 'Active').length;
-                const deactivated = staff.filter(s => s.status === 'Inactive').length;
-                
-                setTotalStaff(total);
-                setActiveStaff(active);
-                setDeactivatedStaff(deactivated);
-                
-                // Generate chart data based on created dates
-                generateChartData(staff);
-            }
-        } catch (error) {
-            console.error("Error fetching staff stats:", error);
-            toast.error("Failed to load staff statistics");
-        } finally {
-            setLoading(false);
+        if (staff.length > 0) {
+            updateStats(staff);
         }
+    }, [staff]);
+
+    const updateStats = (staffData) => {
+        const total = staffData.length;
+        const active = staffData.filter(s => s.status === 'Active').length;
+        const deactivated = staffData.filter(s => s.status === 'Inactive').length;
+        
+        setTotalStaff(total);
+        setActiveStaff(active);
+        setDeactivatedStaff(deactivated);
+        
+        generateChartData(staffData);
     };
 
     const generateChartData = (staff) => {
@@ -197,7 +179,7 @@ const CardMetrics = () => {
                         </CardHeader>
 
                         <CardContent>
-                            {loading ? (
+                            {propLoading ? (
                                 <div className="flex items-center justify-center h-[70px]">
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 </div>

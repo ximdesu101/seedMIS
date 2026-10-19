@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "cn";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -50,11 +50,10 @@ import productionService from "@/services/productionService";
 const EditProduction = ({ production, onUpdate }) => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSelectingFile, setIsSelectingFile] = useState(false);
     const [dateSown, setDateSown] = useState(production.date_sown ? new Date(production.date_sown) : undefined);
     const [expectedReadyDate, setExpectedReadyDate] = useState(production.expected_ready ? new Date(production.expected_ready) : undefined);
     const [imageFile, setImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState(production.image_url ? getImageUrl(production.image_url) : null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     const [formData, setFormData] = useState({
         seedling_type: production.seedling_type || '',
@@ -62,15 +61,44 @@ const EditProduction = ({ production, onUpdate }) => {
         location: production.location || '',
     });
 
+    // Fetch current image when dialog opens
+    useEffect(() => {
+        if (dialogOpen && production.image_url) {
+            setImagePreview(getImageUrl(production.image_url));
+        }
+    }, [dialogOpen, production.image_url]);
+
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         
-        // Auto capitalize seedling_type
-        const processedValue = id === 'seedling_type' ? value.toUpperCase() : value;
+        // Validation: seedling_type should only contain letters, spaces, hyphens, and parentheses
+        if (id === 'seedling_type') {
+            // Only allow letters, spaces, hyphens, and parentheses
+            const sanitizedValue = value.replace(/[^a-zA-Z\s\-\(\)]/g, '');
+            const processedValue = sanitizedValue.toUpperCase();
+            
+            setFormData(prev => ({
+                ...prev,
+                [id]: processedValue
+            }));
+            return;
+        }
+        
+        // Validation: location should only contain letters, spaces, hyphens, and numbers
+        if (id === 'location') {
+            // Allow letters, numbers, spaces, hyphens only
+            const sanitizedValue = value.replace(/[^a-zA-Z0-9\s\-]/g, '');
+            
+            setFormData(prev => ({
+                ...prev,
+                [id]: sanitizedValue
+            }));
+            return;
+        }
         
         setFormData(prev => ({
             ...prev,
-            [id]: processedValue
+            [id]: value
         }));
     };
 
@@ -83,16 +111,11 @@ const EditProduction = ({ production, onUpdate }) => {
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
-        console.log('File selected:', file?.name);
-        
-        setIsSelectingFile(false);
-        
         if (file) {
             setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result);
-                console.log('Image preview set');
             };
             reader.readAsDataURL(file);
         }
@@ -101,13 +124,6 @@ const EditProduction = ({ production, onUpdate }) => {
     const handleRemoveImage = () => {
         setImageFile(null);
         setImagePreview(production.image_url ? getImageUrl(production.image_url) : null);
-        // Clear the file input
-        const fileInput = document.getElementById('seedling-image');
-        if (fileInput) fileInput.value = '';
-    };
-
-    const handleFileInputClick = () => {
-        setIsSelectingFile(true);
     };
 
     const handleSubmit = async (e) => {
@@ -157,40 +173,14 @@ const EditProduction = ({ production, onUpdate }) => {
     };
 
     return (
-        <Dialog 
-            open={dialogOpen} 
-            onOpenChange={(open) => {
-                // Prevent closing when selecting file
-                if (!open && isSelectingFile) {
-                    return;
-                }
-                setDialogOpen(open);
-            }}
-        >
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="w-full justify-start">
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit Batch Info
                 </Button>
             </DialogTrigger>
-            <DialogContent 
-                className="w-[90vw] !max-w-3xl sm:!max-w-3xl max-h-[90vh] flex flex-col gap-0"
-                onPointerDownOutside={(e) => {
-                    if (isSelectingFile) {
-                        e.preventDefault();
-                    }
-                }}
-                onInteractOutside={(e) => {
-                    if (isSelectingFile) {
-                        e.preventDefault();
-                    }
-                }}
-                onEscapeKeyDown={(e) => {
-                    if (isSelectingFile) {
-                        e.preventDefault();
-                    }
-                }}
-            >
+            <DialogContent className="w-[90vw] !max-w-3xl sm:!max-w-3xl max-h-[90vh] flex flex-col gap-0">
                 <form onSubmit={handleSubmit} className="flex flex-col h-full">
                     <DialogHeader className="px-6 pt-6 pb-4">
                         <DialogTitle>Edit Production Batch</DialogTitle>
@@ -223,10 +213,7 @@ const EditProduction = ({ production, onUpdate }) => {
                                                 variant="destructive"
                                                 size="icon"
                                                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleRemoveImage();
-                                                }}
+                                                onClick={handleRemoveImage}
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
@@ -239,21 +226,30 @@ const EditProduction = ({ production, onUpdate }) => {
                                     <div className="flex-1">
                                         <input
                                             type="file"
-                                            id="seedling-image"
+                                            id="seedling-image-edit"
                                             accept="image/*"
-                                            onClick={handleFileInputClick}
                                             onChange={handleImageUpload}
-                                            onCancel={() => setIsSelectingFile(false)}
-                                            className="block w-full text-sm text-gray-500
-                                                file:mr-4 file:py-2 file:px-4
-                                                file:rounded-md file:border-0
-                                                file:text-sm file:font-semibold
-                                                file:bg-primary file:text-white
-                                                hover:file:bg-primary/90
-                                                file:cursor-pointer cursor-pointer"
+                                            className="hidden"
                                         />
+                                        <label htmlFor="seedling-image-edit">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="cursor-pointer"
+                                                asChild
+                                            >
+                                                <span>
+                                                    <Upload className="h-4 w-4 mr-2" />
+                                                    {imageFile ? 'Change Image' : production.image_url ? 'Replace Image' : 'Upload Image'}
+                                                </span>
+                                            </Button>
+                                        </label>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            {imageFile ? `New image selected: ${imageFile.name}` : production.image_url ? 'Current image loaded. Click above to replace.' : 'Click above to upload a photo of the seedling'}
+                                            {imageFile 
+                                                ? `New image selected: ${imageFile.name}` 
+                                                : production.image_url 
+                                                    ? 'Current image from database. Click to replace.' 
+                                                    : 'Upload a photo of the seedling (PNG, JPG, or JPEG)'}
                                         </p>
                                     </div>
                                 </div>
@@ -270,10 +266,15 @@ const EditProduction = ({ production, onUpdate }) => {
                                             value={formData.seedling_type}
                                             onChange={handleInputChange}
                                             style={{ textTransform: 'uppercase' }}
+                                            pattern="[A-Za-z\s\-\(\)]+"
+                                            title="Only letters, spaces, hyphens, and parentheses are allowed"
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
                                     </InputGroup>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Only letters allowed (numbers not accepted)
+                                    </p>
                                 </Field>
 
                                 <Field>
@@ -371,6 +372,8 @@ const EditProduction = ({ production, onUpdate }) => {
                                         placeholder="Greenhouse A"
                                         value={formData.location}
                                         onChange={handleInputChange}
+                                        pattern="[A-Za-z0-9\s\-]+"
+                                        title="Only letters, numbers, spaces, and hyphens are allowed"
                                         required
                                     />
                                     <InputGroupAddon><Sprout /></InputGroupAddon>

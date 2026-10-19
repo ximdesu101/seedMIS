@@ -90,12 +90,34 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
     const handleInputChange = (e) => {
         const { id, value } = e.target;
         
-        // Auto capitalize seedling_type
-        const processedValue = id === 'seedling_type' ? value.toUpperCase() : value;
+        // Validation: seedling_type should only contain letters, spaces, hyphens, and parentheses
+        if (id === 'seedling_type') {
+            // Only allow letters, spaces, hyphens, and parentheses
+            const sanitizedValue = value.replace(/[^a-zA-Z\s\-\(\)]/g, '');
+            const processedValue = sanitizedValue.toUpperCase();
+            
+            setFormData(prev => ({
+                ...prev,
+                [id]: processedValue
+            }));
+            return;
+        }
+        
+        // Validation: location should only contain letters, spaces, hyphens, and numbers
+        if (id === 'location') {
+            // Allow letters, numbers, spaces, hyphens only
+            const sanitizedValue = value.replace(/[^a-zA-Z0-9\s\-]/g, '');
+            
+            setFormData(prev => ({
+                ...prev,
+                [id]: sanitizedValue
+            }));
+            return;
+        }
         
         setFormData(prev => ({
             ...prev,
-            [id]: processedValue
+            [id]: value
         }));
     };
 
@@ -300,10 +322,15 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
                                             value={formData.seedling_type}
                                             onChange={handleInputChange}
                                             style={{ textTransform: 'uppercase' }}
+                                            pattern="[A-Za-z\s\-\(\)]+"
+                                            title="Only letters, spaces, hyphens, and parentheses are allowed"
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>
                                     </InputGroup>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Only letters allowed (numbers not accepted)
+                                    </p>
                                 </Field>
                             </div>
 
@@ -464,6 +491,8 @@ const AddSeedlings = ({ onSeedlingAdded }) => {
                                             placeholder="Greenhouse A"
                                             value={formData.location}
                                             onChange={handleInputChange}
+                                            pattern="[A-Za-z0-9\s\-]+"
+                                            title="Only letters, numbers, spaces, and hyphens are allowed"
                                             required
                                         />
                                         <InputGroupAddon><Sprout /></InputGroupAddon>

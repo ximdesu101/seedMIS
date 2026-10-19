@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -42,39 +42,15 @@ import EditClient from "./EditClient";
 import clientService from "@/services/clientService";
 import { toast } from "sonner";
 
-const ClientTable = () => {
+const ClientTable = ({ clients = [], loading: propLoading = false, onRefresh }) => {
     const navigate = useNavigate();
-    const [clients, setClients] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // Fetch clients from API
-    useEffect(() => {
-        fetchClients();
-    }, []);
-
-    const fetchClients = async () => {
-        try {
-            setLoading(true);
-            const response = await clientService.getAllClients();
-            if (response.success) {
-                setClients(response.data);
-            }
-        } catch (error) {
-            console.error("Error fetching clients:", error);
-            toast.error("Failed to load clients", {
-                description: "Please make sure the backend server is running"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleClientAdded = () => {
-        fetchClients(); // Refresh the list when a new client is added
+        if (onRefresh) onRefresh();
     };
 
     const handleDeleteClient = async (id, clientName) => {
@@ -88,7 +64,7 @@ const ClientTable = () => {
                 toast.success("Client deleted successfully!", {
                     description: `${clientName} has been removed from the system.`
                 });
-                fetchClients(); // Refresh the list
+                if (onRefresh) onRefresh();
             }
         } catch (error) {
             console.error("Error deleting client:", error);
@@ -215,7 +191,7 @@ const ClientTable = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {loading ? (
+                        {propLoading ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="text-center h-32">
                                     <div className="flex flex-col items-center justify-center gap-2">
@@ -258,7 +234,7 @@ const ClientTable = () => {
                                             </Button>
                                             <EditClient 
                                                 client={client} 
-                                                onClientUpdated={fetchClients}
+                                                onClientUpdated={onRefresh}
                                             />
                                         </div>
                                     </TableCell>

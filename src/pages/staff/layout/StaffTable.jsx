@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getUserDisplayName } from "@/utils/nameHelper";
@@ -41,38 +41,14 @@ import EditStaff from "./EditStaff";
 import staffService from "@/services/staffService";
 import { toast } from "sonner";
 
-const StaffTable = () => {
-    const [staff, setStaff] = useState([]);
-    const [loading, setLoading] = useState(true);
+const StaffTable = ({ staff = [], loading: propLoading = false, onRefresh }) => {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // Fetch staff from API
-    useEffect(() => {
-        fetchStaff();
-    }, []);
-
-    const fetchStaff = async () => {
-        try {
-            setLoading(true);
-            const response = await staffService.getAllStaff();
-            if (response.success) {
-                setStaff(response.data);
-            }
-        } catch (error) {
-            console.error("Error fetching staff:", error);
-            toast.error("Failed to load staff", {
-                description: "Please make sure the backend server is running"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleStaffAdded = () => {
-        fetchStaff(); // Refresh the list when a new staff is added
+        if (onRefresh) onRefresh();
     };
 
     const handleDeleteStaff = async (id, staffName) => {
@@ -86,7 +62,7 @@ const StaffTable = () => {
                 toast.success("Staff deleted successfully!", {
                     description: `${staffName} has been removed from the system.`
                 });
-                fetchStaff(); // Refresh the list
+                if (onRefresh) onRefresh();
             }
         } catch (error) {
             console.error("Error deleting staff:", error);
@@ -213,7 +189,7 @@ const StaffTable = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {loading ? (
+                        {propLoading ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="text-center h-32">
                                     <div className="flex flex-col items-center justify-center gap-2">
@@ -248,7 +224,7 @@ const StaffTable = () => {
                                         <div className="flex items-center justify-end gap-2">
                                             <EditStaff 
                                                 staff={employee} 
-                                                onStaffUpdated={fetchStaff}
+                                                onStaffUpdated={onRefresh}
                                             />
                                             <Button 
                                                 variant="destructive" 

@@ -51,7 +51,7 @@ const RejectRequestDialog = ({ isOpen, onClose, request, onReject }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-20 z-40 flex items-center justify-center p-4"
+      className="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs flex items-center justify-center p-4"
       onClick={handleClose}
     >
       <div

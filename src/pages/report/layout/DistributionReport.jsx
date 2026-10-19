@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import reportService from "@/services/reportService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Download, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from 'xlsx';
@@ -10,6 +18,8 @@ import * as XLSX from 'xlsx';
 const DistributionReport = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [dateRange, setDateRange] = useState(() => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -100,6 +110,21 @@ const DistributionReport = () => {
     const totalQuantity = data.reduce((sum, item) => sum + item.quantity, 0);
     const totalRevenue = data.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
 
+    // Pagination
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return data.slice(startIndex, endIndex);
+    }, [data, currentPage]);
+
+    const goToPage = (page) => {
+        setCurrentPage(page);
+    };
+
+    const startItem = data.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, data.length);
+
     return (
         <Card>
             <CardHeader>
@@ -179,19 +204,22 @@ const DistributionReport = () => {
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center">Loading...</TableCell>
                                 </TableRow>
-                            ) : data.length > 0 ? (
-                                data.map((item, index) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell>{item.date}</TableCell>
-                                        <TableCell>{item.client_name}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate">{item.organization}</TableCell>
-                                        <TableCell>{item.seedling_type}</TableCell>
-                                        <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right">₱{parseFloat(item.total_price).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate">{item.purpose}</TableCell>
-                                    </TableRow>
-                                ))
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((item, index) => {
+                                    const actualIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                                    return (
+                                        <TableRow key={item.id}>
+                                            <TableCell>{actualIndex}</TableCell>
+                                            <TableCell>{item.date}</TableCell>
+                                            <TableCell>{item.client_name || 'N/A'}</TableCell>
+                                            <TableCell className="max-w-[200px] truncate">{item.organization || 'N/A'}</TableCell>
+                                            <TableCell>{item.seedling_type}</TableCell>
+                                            <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">₱{parseFloat(item.total_price).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</TableCell>
+                                            <TableCell className="max-w-[200px] truncate">{item.purpose}</TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center">No records found</TableCell>
@@ -200,6 +228,53 @@ const DistributionReport = () => {
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* Pagination */}
+                {data.length > 0 && (
+                    <div className="flex items-center justify-between px-2">
+                        <div className="text-sm text-muted-foreground">
+                            Showing {startItem}-{endItem} of {data.length} records
+                        </div>
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (currentPage > 1) goToPage(currentPage - 1);
+                                        }}
+                                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    />
+                                </PaginationItem>
+                                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={currentPage === page}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                goToPage(page);
+                                            }}
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (currentPage < totalPages) goToPage(currentPage + 1);
+                                        }}
+                                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

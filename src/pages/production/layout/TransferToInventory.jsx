@@ -60,11 +60,13 @@ const TransferToInventory = ({ production, onUpdate, needsPriceInput }) => {
             console.error('Error transferring to inventory:', error);
             if (error.response && error.response.data) {
                 const errorMessage = error.response.data.errors 
-                    ? Object.values(error.response.data.errors).flat().join('\n')
+                    ? Object.values(error.response.data.errors).flat().join(', ')
                     : error.response.data.message;
-                alert(`Error: ${errorMessage}`);
+                toast.error('Transfer Failed', {
+                    description: errorMessage
+                });
             } else {
-                alert('Failed to transfer to inventory. Please try again.');
+                toast.error('Failed to transfer to inventory. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
