@@ -349,7 +349,7 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     <InputGroupInput
                                         id="first-name"
                                         type="text"
-                                        placeholder="JOHN"
+                                        placeholder="Enter First Name"
                                         value={formData.first_name}
                                         onChange={handleInputChange}
                                         required
@@ -368,7 +368,7 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     <InputGroupInput
                                         id="middle-name"
                                         type="text"
-                                        placeholder="JANE"
+                                        placeholder="Enter Middle Name"
                                         value={formData.middle_name}
                                         onChange={handleInputChange}
                                     />
@@ -381,7 +381,7 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     <InputGroupInput
                                         id="last-name"
                                         type="text"
-                                        placeholder="DOE"
+                                        placeholder="Enter Last Name"
                                         value={formData.last_name}
                                         onChange={handleInputChange}
                                         required
@@ -429,7 +429,7 @@ const EditClient = ({ client, onClientUpdated }) => {
                                     <InputGroupInput
                                         id="email"
                                         type="email"
-                                        placeholder="john.doe@example.com"
+                                        placeholder="Enter Email"
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         required

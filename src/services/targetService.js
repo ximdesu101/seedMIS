@@ -51,6 +51,16 @@ const targetService = {
         }
     },
 
+    // Get deleted targets history
+    getDeletedTargets: async () => {
+        try {
+            const response = await api.get('/targets/deleted');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Get monthly target vs actual distribution
     getMonthlyTargetVsActual: async (dateRange = null) => {
         try {

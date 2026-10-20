@@ -15,6 +15,7 @@ import RequestDetails from "@/pages/request/RequestDetails";
 import Staff from "@/pages/staff/staff";
 import Distribute from "@/pages/distribution/Distribution";
 import Settings from "@/pages/settings/Settings";
+import TargetDeletionHistory from "@/pages/settings/TargetDeletionHistory";
 import Profile from "@/pages/profile/Profile";
 import Login from "@/pages/login/login";
 import Reports from "@/pages/report/Report";
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
             { path: "staff", element: <Staff/> },
             { path: "distribute", element: <Distribute/> },
             { path: "settings", element: <Settings/> },
+            { path: "target-deletion-history", element: <TargetDeletionHistory/> },
             { path: "profile", element: <Profile/> },
             { path: "reports", element: <Reports/> },
             { path: "activity-logs", element: <ActivityLogs/> },

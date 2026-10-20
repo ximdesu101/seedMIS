@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Target, TrendingUp, Plus, X, Trash2, RefreshCw, Pencil } from "lucide-react";
+import { Target, TrendingUp, Plus, X, Trash2, RefreshCw, Pencil, History } from "lucide-react";
 import { toast } from "sonner";
 
 const TargetSettings = () => {
@@ -315,6 +315,14 @@ const TargetSettings = () => {
                             </CardDescription>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.location.href = '/target-deletion-history'}
+                            >
+                                <History className="h-4 w-4 mr-2" />
+                                View History
+                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"

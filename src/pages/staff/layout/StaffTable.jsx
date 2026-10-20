@@ -226,16 +226,6 @@ const StaffTable = ({ staff = [], loading: propLoading = false, onRefresh }) => 
                                                 staff={employee} 
                                                 onStaffUpdated={onRefresh}
                                             />
-                                            <Button 
-                                                variant="destructive" 
-                                                size="icon"
-                                                onClick={() => handleDeleteStaff(
-                                                    employee.id, 
-                                                    `${employee.first_name} ${employee.last_name}`
-                                                )}
-                                            >
-                                                <Trash />
-                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
