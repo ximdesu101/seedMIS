@@ -321,7 +321,7 @@ const TargetSettings = () => {
                                 onClick={() => window.location.href = '/target-deletion-history'}
                             >
                                 <History className="h-4 w-4 mr-2" />
-                                View History
+                                Delete History
                             </Button>
                             <Button
                                 variant="outline"
