@@ -48,35 +48,17 @@ import EditProduction from "./EditProduction";
 import TransferToInventory from "./TransferToInventory";
 import ViewAllHistory from "./ViewAllHistory";
 
-const ProductionTable = () => {
+const ProductionTable = ({ productions, loading, onRefresh }) => {
     const [search, setSearch] = useState("");
     const [stageFilter, setStageFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
-    const [productionBatches, setProductionBatches] = useState([]);
     const [inventories, setInventories] = useState([]);
-    const [loading, setLoading] = useState(true);
     const itemsPerPage = 5;
 
-    // Fetch production batches and inventories from API
+    // Fetch inventories from API
     useEffect(() => {
-        fetchProductions();
         fetchInventories();
     }, []);
-
-    const fetchProductions = async () => {
-        try {
-            setLoading(true);
-            const response = await productionService.getAllProductions();
-            if (response.success) {
-                setProductionBatches(response.data);
-            }
-        } catch (error) {
-            console.error('Error fetching production batches:', error);
-            alert('Failed to load production batches');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const fetchInventories = async () => {
         try {
@@ -97,7 +79,7 @@ const ProductionTable = () => {
     };
 
     const filteredBatches = useMemo(() => {
-        return productionBatches.filter((batch) => {
+        return productions.filter((batch) => {
             const searchTerm = search.toLowerCase().trim();
 
             const matchesSearch =
@@ -114,7 +96,7 @@ const ProductionTable = () => {
 
             return matchesSearch && matchesStage;
         });
-    }, [search, stageFilter, productionBatches]);
+    }, [search, stageFilter, productions]);
 
     const totalPages = Math.ceil(
         filteredBatches.length / itemsPerPage
@@ -210,7 +192,7 @@ const ProductionTable = () => {
                     <ViewAllHistory />
                 </div>
 
-                <AddSeedlings onSeedlingAdded={fetchProductions} />
+                <AddSeedlings onSeedlingAdded={onRefresh} />
             </div>
 
             <div className="overflow-hidden rounded-md border">
@@ -327,13 +309,13 @@ const ProductionTable = () => {
                                                 {batch.stage === 'Ready' ? (
                                                     <TransferToInventory 
                                                         production={batch} 
-                                                        onUpdate={fetchProductions}
+                                                        onUpdate={onRefresh}
                                                         needsPriceInput={!checkIfSeedlingExists(batch.seedling_type, batch.classification)}
                                                     />
                                                 ) : (
                                                     <>
-                                                        <UpdateStage production={batch} onUpdate={fetchProductions} />
-                                                        <EditProduction production={batch} onUpdate={fetchProductions} />
+                                                        <UpdateStage production={batch} onUpdate={onRefresh} />
+                                                        <EditProduction production={batch} onUpdate={onRefresh} />
                                                     </>
                                                 )}
                                             </DropdownMenuContent>

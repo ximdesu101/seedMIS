@@ -15,9 +15,11 @@ const SeedlingProduction = () => {
 
     const fetchProductions = async () => {
         try {
+            console.log('🔄 Fetching productions...');
             setLoading(true);
             const response = await productionService.getAllProductions();
             if (response.success) {
+                console.log('✅ Productions fetched:', response.data.length, 'batches');
                 setProductions(response.data);
             }
         } catch (error) {
@@ -29,6 +31,7 @@ const SeedlingProduction = () => {
     };
 
     const handleRefresh = () => {
+        console.log('🔄 handleRefresh called');
         setRefreshTrigger(prev => prev + 1);
     };
 

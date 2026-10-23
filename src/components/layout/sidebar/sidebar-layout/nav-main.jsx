@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react"
 import {
     Collapsible,
@@ -17,6 +17,23 @@ import {
 } from '@/components/ui/sidebar'
 
 export function NavMain({ items }) {
+    const location = useLocation();
+    
+    // Check if a path is active (exact match or starts with the path for detail pages)
+    const isActive = (url) => {
+        const currentPath = location.pathname;
+        // Exact match for main pages
+        if (currentPath === url) return true;
+        
+        // Check for detail pages (e.g., /client/123, /customer/456, /requests/789)
+        if (url === '/client' && currentPath.startsWith('/client/')) return true;
+        if (url === '/customer' && currentPath.startsWith('/customer/')) return true;
+        if (url === '/requests' && currentPath.startsWith('/requests/')) return true;
+        if (url === '/staff' && currentPath.startsWith('/staff/')) return true;
+        
+        return false;
+    };
+    
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Workspace</SidebarGroupLabel>
@@ -54,7 +71,11 @@ export function NavMain({ items }) {
                         </Collapsible>
                     ) : (
                         <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton asChild tooltip={item.title}>
+                            <SidebarMenuButton 
+                                asChild 
+                                tooltip={item.title}
+                                isActive={isActive(item.url)}
+                            >
                                 <Link to={item.url}>
                                     {item.icon && <item.icon />}
                                     <span>{item.title}</span>

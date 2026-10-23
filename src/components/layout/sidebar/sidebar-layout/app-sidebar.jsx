@@ -11,7 +11,7 @@ import {
     LogOut,
     UserCircle
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import * as React from "react";
 
 import { NavMain } from "@/components/layout/sidebar/sidebar-layout/nav-main";
@@ -39,6 +39,7 @@ import { toast } from "sonner";
 
 export function AppSidebar({ ...props }) {
     const navigate = useNavigate();
+    const location = useLocation();
     
     // Get current user info
     const [currentUser, setCurrentUser] = React.useState(null);
@@ -133,6 +134,7 @@ export function AppSidebar({ ...props }) {
                             <SidebarMenuButton 
                                 onClick={() => navigate('/profile')}
                                 className="h-auto py-3 hover:bg-sidebar-accent"
+                                isActive={location.pathname === '/profile'}
                             >
                                 <div className="flex items-center gap-3 w-full">
                                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#016146] flex items-center justify-center text-white font-bold text-lg">

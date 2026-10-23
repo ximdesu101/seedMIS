@@ -69,21 +69,24 @@ const CardMetrics = () => {
                     { 
                         title: "In Production", 
                         description: "Currently growing",
-                        value: data.in_production || 0, 
+                        value: data.in_production || 0,
+                        breakdown: data.in_production_breakdown || null,
                         icon: Factory, 
                         iconClass: "text-orange-600",
                     },
                     { 
                         title: "In Inventory", 
                         description: "Ready for distribution",
-                        value: data.in_inventory || 0, 
+                        value: data.in_inventory || 0,
+                        breakdown: data.in_inventory_breakdown || null,
                         icon: Warehouse, 
                         iconClass: "text-blue-600",
                     },
                     { 
                         title: "Total Seedlings", 
                         description: "Production + Inventory",
-                        value: data.total_seedlings || 0, 
+                        value: data.total_seedlings || 0,
+                        breakdown: data.total_seedlings_breakdown || null,
                         icon: Sprout, 
                         iconClass: "text-green-600",
                     },
@@ -110,7 +113,7 @@ const CardMetrics = () => {
 
     return (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {metrics.map(({ title, description, value, icon: Icon, iconClass }) => (
+            {metrics.map(({ title, description, value, icon: Icon, iconClass, breakdown }) => (
                 <Card key={title}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div className="space-y-1">
@@ -125,6 +128,18 @@ const CardMetrics = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{value.toLocaleString()}</div>
+                        {breakdown && (
+                            <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
+                                    Grafted: {breakdown.grafted}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                                    Seedling: {breakdown.seedling}
+                                </span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             ))}

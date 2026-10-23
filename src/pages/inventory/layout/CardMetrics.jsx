@@ -46,6 +46,7 @@ const CardMetrics = () => {
         {
             title: "Total Seedlings",
             value: loading ? "..." : metrics.total_stock.toLocaleString(),
+            breakdown: loading ? null : metrics.total_stock_breakdown,
             icon: Sprout,
             iconClass: "text-green-600",
         },
@@ -58,6 +59,7 @@ const CardMetrics = () => {
         {
             title: "Available Stock",
             value: loading ? "..." : metrics.total_stock.toLocaleString(),
+            breakdown: loading ? null : metrics.available_stock_breakdown,
             icon: PackageCheck,
             iconClass: "text-blue-600",
         },
@@ -77,7 +79,7 @@ const CardMetrics = () => {
 
     return (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {metricsData.map(({ title, value, icon: Icon, iconClass }) => (
+            {metricsData.map(({ title, value, icon: Icon, iconClass, breakdown }) => (
                 <Card key={title}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
@@ -87,6 +89,18 @@ const CardMetrics = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{value}</div>
+                        {breakdown && (
+                            <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
+                                    Grafted: {breakdown.grafted || 0}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                                    Seedling: {breakdown.seedling || 0}
+                                </span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             ))}
